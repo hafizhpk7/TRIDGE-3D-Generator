@@ -1,0 +1,119 @@
+.generate {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.generate .panel__title {
+  margin-bottom: 0;
+}
+.generate__need,
+.generate__actions,
+.generate__progress {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+.generate__ready {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.generate__ready img {
+  flex: none;
+  border: var(--border);
+  border-radius: 14px;
+  background: var(--surface-2);
+  object-fit: contain;
+}
+.generate__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.generate__head h3 {
+  font-size: 1.05rem;
+}
+.providers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.provider {
+  padding: var(--space-2) var(--space-3);
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+.provider__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.provider__meta {
+  margin-top: 2px;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+.generate__progress {
+  align-items: stretch;
+  font-weight: 700;
+}
+.generate__time {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+.generate__note {
+  padding: var(--space-2) var(--space-3);
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: var(--yellow);
+  color: var(--on-color);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.generate__error {
+  padding: var(--space-2) var(--space-3);
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  background: var(--pink);
+  color: var(--on-color);
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+.token summary {
+  cursor: pointer;
+  font-weight: 800;
+  min-height: 32px;
+}
+.token__label {
+  display: block;
+  margin-top: var(--space-3);
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+.token__input {
+  width: 100%;
+  min-height: 44px;
+  margin-top: var(--space-1);
+  padding: 8px 12px;
+  border: var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+.token__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}

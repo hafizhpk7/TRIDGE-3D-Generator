@@ -3,7 +3,14 @@ import type { CSSProperties, DragEvent } from 'react';
 import { Button, Chip, IconButton, useToast } from '../design/components';
 import { ViewerEngine } from './ViewerEngine';
 import { formatBytes, formatCount, isSupportedModel, type ModelStats } from './helpers';
-import { loadModelFromFile, loadModelFromUrl, type LoadedModel } from './loadModel';
+import {
+  loadModelFromBuffer,
+  loadModelFromFile,
+  loadModelFromUrl,
+  type LoadedModel,
+} from './loadModel';
+import { useModelStore } from '../store/modelStore';
+import { Confetti } from './Confetti';
 import './ViewerPanel.css';
 
 const SAMPLE_URL = './models/sample.glb';
@@ -39,6 +46,8 @@ export default function ViewerPanel() {
   const [modelName, setModelName] = useState('');
   const [loading, setLoading] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [burst, setBurst] = useState(0);
+  const pending = useModelStore((s) => s.pending);
 
   const show = useCallback((loaded: LoadedModel) => {
     const engine = engineRef.current;
@@ -134,6 +143,19 @@ export default function ViewerPanel() {
     return () => document.removeEventListener('visibilitychange', onVis);
   }, []);
 
+  // Show models handed over by other parts of the app (for example a finished generation).
+  useEffect(() => {
+    if (!pending) return;
+    const timer = window.setTimeout(() => {
+      void runLoad(async () => {
+        const loaded = await loadModelFromBuffer(await pending.blob.arrayBuffer(), pending.name);
+        if (pending.celebrate) setBurst((n) => n + 1);
+        return loaded;
+      });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [pending, runLoad]);
+
   const toggleAutoRotate = () => {
     const next = !autoRotate;
     setAutoRotate(next);
@@ -180,6 +202,7 @@ export default function ViewerPanel() {
         onDrop={onDrop}
       >
         <div ref={stageRef} className="viewer__canvas" />
+        <Confetti burst={burst} />
         {loading && <div className="viewer__loading">Loading model…</div>}
         {dragging && <div className="viewer__drop">Drop a .glb, .gltf or .obj file</div>}
       </div>

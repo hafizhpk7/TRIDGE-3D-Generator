@@ -2,7 +2,7 @@ import { lazy, Suspense, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button, IconButton, Modal, Panel, Tabs, useToast } from '../design/components';
 import { InputPanel } from '../pipeline/input/InputPanel';
-import { useInputStore } from '../store/inputStore';
+import { GeneratePanel } from '../pipeline/providers/GeneratePanel';
 import { StepTracker } from './StepTracker';
 import { STEPS } from './steps';
 import { ThemeToggle } from './ThemeToggle';
@@ -18,7 +18,6 @@ export function Workspace() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const toast = useToast();
-  const prepared = useInputStore((s) => s.prepared);
 
   const current = STEPS.find((s) => s.id === step) ?? STEPS[0];
 
@@ -47,12 +46,11 @@ export function Workspace() {
           <StepTracker current={step} onSelect={setStep} />
           {step === 'input' ? (
             <InputPanel />
+          ) : step === 'generate' ? (
+            <GeneratePanel onGoToInput={() => setStep('input')} />
           ) : (
             <Panel title={current.title} accent={current.color} className="step-detail">
               <p>{current.hint}</p>
-              {step === 'generate' && prepared && (
-                <img className="step-detail__img" src={prepared.url} alt="Prepared picture" />
-              )}
               <p className="muted">This panel gets its controls in a later phase.</p>
             </Panel>
           )}
