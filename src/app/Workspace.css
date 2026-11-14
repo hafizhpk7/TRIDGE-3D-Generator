@@ -175,3 +175,13 @@
     padding: var(--space-3);
   }
 }
+
+.step-detail__img {
+  display: block;
+  width: 100%;
+  max-width: 220px;
+  margin-top: var(--space-3);
+  border: var(--border);
+  border-radius: 16px;
+  background: var(--surface-2);
+}
