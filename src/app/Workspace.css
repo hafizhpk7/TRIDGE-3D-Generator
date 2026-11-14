@@ -1,0 +1,224 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--border);
+  background: var(--surface);
+}
+.topbar__logo {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: var(--radius-btn);
+  /* The wordmark is dark ink, so it sits on a light sticker in dark mode. */
+  background: #eef0ff;
+}
+.topbar__logo img {
+  display: block;
+  height: 40px;
+  width: auto;
+}
+.topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.topbar__link {
+  text-decoration: none;
+}
+@media (max-width: 560px) {
+  .topbar__actions .btn {
+    display: none;
+  }
+}
+
+.workspace {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr) minmax(260px, 340px);
+  gap: var(--space-4);
+  padding: var(--space-4);
+  align-items: start;
+}
+.workspace__steps,
+.tools__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.muted {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  margin-top: var(--space-2);
+}
+
+/* Step tracker */
+.steps__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 52px;
+  padding: 6px 8px;
+  border: 3px solid transparent;
+  border-radius: var(--radius-btn);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.step:hover {
+  background: var(--surface-2);
+}
+.step[aria-current='step'] {
+  border-color: var(--ink);
+  background: var(--surface-2);
+  box-shadow: var(--shadow-sm);
+}
+.step__num {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: var(--border);
+  border-radius: 10px;
+  color: var(--on-color);
+  font-family: var(--font-display);
+}
+.step__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.step__title {
+  font-weight: 800;
+}
+.step__hint {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+/* Viewer */
+.viewer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.viewer__stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 420px;
+  padding: var(--space-5);
+  overflow: hidden;
+  border: var(--border);
+  border-radius: var(--radius-panel);
+  background: radial-gradient(circle at 50% 30%, var(--surface) 0%, var(--surface-2) 100%);
+  box-shadow: var(--shadow);
+}
+.viewer__pedestal {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  width: min(260px, 60%);
+  height: 36px;
+  transform: translateX(-50%);
+  border: var(--border);
+  border-radius: 50%;
+  background: var(--violet);
+  box-shadow:
+    0 8px 0 -1px var(--pink),
+    0 8px 0 2px var(--ink);
+}
+.viewer__stage .empty {
+  position: relative;
+  z-index: 1;
+  background: var(--surface);
+  margin-bottom: 40px;
+}
+.viewer__bar {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* Tools: right column on desktop, bottom sheet on small screens */
+.tools__handle {
+  display: none;
+}
+
+@media (max-width: 1000px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+    padding-bottom: 88px;
+  }
+  .viewer {
+    order: -1;
+  }
+  .viewer__stage {
+    min-height: 300px;
+  }
+  .workspace__steps {
+    order: 1;
+  }
+  .tools {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 50;
+    max-height: 70dvh;
+    overflow: auto;
+    border-top: var(--border);
+    border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+    background: var(--bg);
+    box-shadow: 0 -4px 0 var(--shadow-color);
+    transition: transform 220ms ease;
+    transform: translateY(calc(100% - 56px));
+  }
+  .tools--open {
+    transform: none;
+  }
+  .tools__handle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    width: 100%;
+    min-height: 56px;
+    padding: 8px;
+    border: 0;
+    background: var(--surface);
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .tools__grip {
+    width: 44px;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--ink);
+  }
+  .tools__body {
+    padding: var(--space-3);
+  }
+}
+@media (max-width: 480px) {
+  .workspace {
+    padding: var(--space-3);
+  }
+}

@@ -1,0 +1,33 @@
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: var(--border);
+  border-radius: var(--radius-btn);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition:
+    transform 90ms ease,
+    box-shadow 90ms ease;
+}
+.icon-btn:hover:not(:disabled) {
+  background: var(--yellow);
+  color: var(--on-color);
+}
+.icon-btn:active:not(:disabled) {
+  transform: translate(1px, 2px);
+  box-shadow: 1px 1px 0 var(--shadow-color);
+}
+.icon-btn[aria-pressed='true'] {
+  background: var(--mint);
+  color: var(--on-color);
+}
+.icon-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

@@ -1,0 +1,22 @@
+.panel {
+  padding: var(--space-4);
+  border: var(--border);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.panel__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  font-size: 1.3rem;
+}
+.panel__dot {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border: var(--border);
+  border-radius: 4px;
+  transform: rotate(45deg);
+}

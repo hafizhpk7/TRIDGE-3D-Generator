@@ -1,0 +1,67 @@
+/* TRIDGE design tokens: "candy facets" */
+:root {
+  --bg: #eef0ff;
+  --surface: #ffffff;
+  --surface-2: #f4f5ff;
+  --ink: #22184a;
+  --ink-soft: #4a4175;
+  --on-color: #22184a;
+  --shadow-color: #22184a;
+
+  --pink: #ff6b9d;
+  --orange: #ff9f43;
+  --yellow: #ffd43b;
+  --mint: #3dd9b0;
+  --sky: #4dabf7;
+  --violet: #9b7bff;
+
+  --focus: #7b5cfa;
+  --pattern-opacity: 0.55;
+
+  --font-display: 'Bagel Fat One', 'Arial Rounded MT Bold', 'Trebuchet MS', system-ui, sans-serif;
+  --font-body: 'Nunito', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --border: 3px solid var(--ink);
+  --radius-panel: 24px;
+  --radius-btn: 16px;
+  --radius-chip: 999px;
+  --shadow: 4px 5px 0 var(--shadow-color);
+  --shadow-sm: 2px 3px 0 var(--shadow-color);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --bg: #1b1640;
+  --surface: #2a2360;
+  --surface-2: #231d52;
+  --ink: #f4f1ff;
+  --ink-soft: #c9c1ee;
+  --on-color: #22184a;
+  --shadow-color: #0d0a24;
+  --focus: #ffd43b;
+  --pattern-opacity: 0.35;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #1b1640;
+    --surface: #2a2360;
+    --surface-2: #231d52;
+    --ink: #f4f1ff;
+    --ink-soft: #c9c1ee;
+    --on-color: #22184a;
+    --shadow-color: #0d0a24;
+    --focus: #ffd43b;
+    --pattern-opacity: 0.35;
+    color-scheme: dark;
+  }
+}

@@ -1,0 +1,41 @@
+.pg {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--space-4);
+}
+.pg__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.pg__head h1 {
+  font-size: 2rem;
+}
+.pg__head-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.pg__head-actions .btn {
+  text-decoration: none;
+}
+.pg__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+.pg__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+.pg__wide {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+}

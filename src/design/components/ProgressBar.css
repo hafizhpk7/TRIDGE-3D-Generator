@@ -1,0 +1,31 @@
+.progress {
+  position: relative;
+  height: 20px;
+  overflow: hidden;
+  border: var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+.progress__fill {
+  height: 100%;
+  background: var(--mint);
+  border-right: var(--border);
+  transition: width 200ms ease;
+}
+.progress--queue .progress__fill {
+  width: 100%;
+  border-right: 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--pink) 0 14px,
+    var(--yellow) 14px 28px,
+    var(--sky) 28px 42px
+  );
+  background-size: 120px 100%;
+  animation: progress-slide 1.2s linear infinite;
+}
+@keyframes progress-slide {
+  to {
+    background-position: 120px 0;
+  }
+}

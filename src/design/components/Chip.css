@@ -1,0 +1,46 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 2px 14px;
+  border: var(--border);
+  border-radius: var(--radius-chip);
+  color: var(--on-color);
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+.chip--pink {
+  background: var(--pink);
+}
+.chip--orange {
+  background: var(--orange);
+}
+.chip--yellow {
+  background: var(--yellow);
+}
+.chip--mint {
+  background: var(--mint);
+}
+.chip--sky {
+  background: var(--sky);
+}
+.chip--violet {
+  background: var(--violet);
+}
+.chip--btn {
+  min-height: 44px;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform 90ms ease,
+    box-shadow 90ms ease;
+}
+.chip--btn:active {
+  transform: translate(1px, 2px);
+  box-shadow: 1px 1px 0 var(--shadow-color);
+}
+.chip--btn[aria-pressed='true'] {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
