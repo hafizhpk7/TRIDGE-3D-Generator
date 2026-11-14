@@ -1,19 +1,12 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  Button,
-  Chip,
-  EmptyState,
-  IconButton,
-  Modal,
-  Panel,
-  Tabs,
-  useToast,
-} from '../design/components';
+import { Button, IconButton, Modal, Panel, Tabs, useToast } from '../design/components';
 import { StepTracker } from './StepTracker';
 import { STEPS } from './steps';
 import { ThemeToggle } from './ThemeToggle';
 import './Workspace.css';
+
+const ViewerPanel = lazy(() => import('../viewer/ViewerPanel'));
 
 const TOOL_TABS = ['Low poly', 'Rig', 'Animate', 'Export'];
 
@@ -55,17 +48,9 @@ export function Workspace() {
           </Panel>
         </div>
 
-        <section className="viewer" aria-label="3D viewer">
-          <div className="viewer__stage">
-            <EmptyState title="Your model shows up here">
-              Drop a picture of something you love to get started.
-            </EmptyState>
-            <div className="viewer__pedestal" aria-hidden="true" />
-          </div>
-          <div className="viewer__bar">
-            <Chip color="violet">No model yet</Chip>
-          </div>
-        </section>
+        <Suspense fallback={<div className="viewer" aria-busy="true" />}>
+          <ViewerPanel />
+        </Suspense>
 
         <aside className={`tools ${sheetOpen ? 'tools--open' : ''}`} aria-label="Tools">
           <button

@@ -113,50 +113,6 @@
   color: var(--ink-soft);
 }
 
-/* Viewer */
-.viewer {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  min-width: 0;
-}
-.viewer__stage {
-  position: relative;
-  display: grid;
-  place-items: center;
-  min-height: 420px;
-  padding: var(--space-5);
-  overflow: hidden;
-  border: var(--border);
-  border-radius: var(--radius-panel);
-  background: radial-gradient(circle at 50% 30%, var(--surface) 0%, var(--surface-2) 100%);
-  box-shadow: var(--shadow);
-}
-.viewer__pedestal {
-  position: absolute;
-  bottom: 28px;
-  left: 50%;
-  width: min(260px, 60%);
-  height: 36px;
-  transform: translateX(-50%);
-  border: var(--border);
-  border-radius: 50%;
-  background: var(--violet);
-  box-shadow:
-    0 8px 0 -1px var(--pink),
-    0 8px 0 2px var(--ink);
-}
-.viewer__stage .empty {
-  position: relative;
-  z-index: 1;
-  background: var(--surface);
-  margin-bottom: 40px;
-}
-.viewer__bar {
-  display: flex;
-  gap: var(--space-2);
-}
-
 /* Tools: right column on desktop, bottom sheet on small screens */
 .tools__handle {
   display: none;
@@ -169,9 +125,6 @@
   }
   .viewer {
     order: -1;
-  }
-  .viewer__stage {
-    min-height: 300px;
   }
   .workspace__steps {
     order: 1;
