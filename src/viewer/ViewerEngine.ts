@@ -42,6 +42,13 @@ export class ViewerEngine {
 
   private readonly modelHolder = new Group();
   private model: Object3D | null = null;
+  /** The loaded object inside `model`, and the scale applied to its wrapper. */
+  private modelObject: Object3D | null = null;
+  private modelScale = 1;
+  private processed: Object3D | null = null;
+  private viewMode: 'original' | 'lowpoly' | 'split' = 'original';
+  private splitRatio = 0.5;
+  private size = { w: 1, h: 1 };
   private stats: ModelStats | null = null;
   private wireframe = false;
   private flat = false;
@@ -158,9 +165,34 @@ export class ViewerEngine {
       if (!this.running) return;
       this.raf = requestAnimationFrame(tick);
       this.controls.update();
-      this.renderer.render(this.scene, this.camera);
+      this.renderFrame();
     };
     tick();
+  }
+
+  private renderFrame() {
+    const original = this.model;
+    const processed = this.processed;
+    if (!(this.viewMode === 'split' && original && processed)) {
+      this.renderer.render(this.scene, this.camera);
+      return;
+    }
+    // Before/after: draw the scene twice, each time clipped to one side of the divider.
+    const { w, h } = this.size;
+    const cut = Math.round(w * this.splitRatio);
+    const r = this.renderer;
+    r.setScissorTest(true);
+    original.visible = true;
+    processed.visible = false;
+    r.setViewport(0, 0, w, h);
+    r.setScissor(0, 0, cut, h);
+    r.render(this.scene, this.camera);
+    original.visible = false;
+    processed.visible = true;
+    r.setScissor(cut, 0, w - cut, h);
+    r.render(this.scene, this.camera);
+    r.setScissorTest(false);
+    original.visible = true;
   }
 
   stop() {
@@ -171,6 +203,7 @@ export class ViewerEngine {
   private resize() {
     const w = Math.max(1, this.container.clientWidth);
     const h = Math.max(1, this.container.clientHeight);
+    this.size = { w, h };
     this.renderer.setSize(w, h, false);
     this.renderer.domElement.style.width = '100%';
     this.renderer.domElement.style.height = '100%';
@@ -224,6 +257,8 @@ export class ViewerEngine {
 
     this.modelHolder.add(wrapper);
     this.model = wrapper;
+    this.modelObject = object;
+    this.modelScale = scale;
     this.stats = computeStats(object, bytes);
     this.applyMaterialModes();
 
@@ -234,11 +269,72 @@ export class ViewerEngine {
   }
 
   clearModel() {
+    this.setProcessed(null);
     if (!this.model) return;
     this.modelHolder.remove(this.model);
     disposeObject(this.model);
     this.model = null;
+    this.modelObject = null;
     this.stats = null;
+  }
+
+  /** Show a low-poly version next to the original. Pass null to remove it. */
+  setProcessed(object: Object3D | null) {
+    if (this.processed) {
+      this.modelHolder.remove(this.processed);
+      // Texture-mode materials share textures with the original, so keep those alive.
+      disposeObject(this.processed, { textures: false });
+      this.processed = null;
+    }
+    if (!object || !this.modelObject) {
+      this.applyVisibility();
+      return;
+    }
+    const wrapper = new Group();
+    wrapper.add(object);
+    // Same placement as the original so the two line up exactly.
+    object.position.copy(this.modelObject.position);
+    wrapper.scale.setScalar(this.modelScale);
+    wrapper.traverse((o) => {
+      if (o instanceof Mesh) o.castShadow = true;
+    });
+    this.modelHolder.add(wrapper);
+    this.processed = wrapper;
+    this.processedStats = computeStats(object, 0);
+    this.applyMaterialModes();
+    this.applyVisibility();
+  }
+
+  private processedStats: ModelStats | null = null;
+
+  /** The low-poly group (the wrapper's only child), for in-place recoloring. */
+  getProcessedObject(): Group | null {
+    const child = this.processed?.children[0];
+    return child instanceof Group ? child : null;
+  }
+
+  getProcessedStats(): ModelStats | null {
+    return this.processed ? this.processedStats : null;
+  }
+
+  setViewMode(mode: 'original' | 'lowpoly' | 'split') {
+    this.viewMode = mode;
+    this.applyVisibility();
+  }
+
+  /** 0..1 position of the before/after divider. */
+  setSplitRatio(ratio: number) {
+    this.splitRatio = Math.min(0.95, Math.max(0.05, ratio));
+  }
+
+  private applyVisibility() {
+    if (!this.model) return;
+    if (!this.processed) {
+      this.model.visible = true;
+      return;
+    }
+    this.model.visible = this.viewMode !== 'lowpoly';
+    this.processed.visible = this.viewMode !== 'original';
   }
 
   getStats(): ModelStats | null {
@@ -260,7 +356,7 @@ export class ViewerEngine {
   private applyMaterialModes() {
     if (!this.model) return;
     const seen = new Set<Material>();
-    this.model.traverse((o) => {
+    this.modelHolder.traverse((o) => {
       if (!(o instanceof Mesh)) return;
       const mats = Array.isArray(o.material) ? o.material : [o.material];
       for (const m of mats) {

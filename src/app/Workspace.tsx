@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Button, IconButton, Modal, Panel, Tabs, useToast } from '../design/components';
 import { InputPanel } from '../pipeline/input/InputPanel';
 import { GeneratePanel } from '../pipeline/providers/GeneratePanel';
+import { LowPolyPanel } from '../pipeline/lowpoly/LowPolyPanel';
 import { StepTracker } from './StepTracker';
 import { STEPS } from './steps';
 import { ThemeToggle } from './ThemeToggle';
@@ -48,6 +49,8 @@ export function Workspace() {
             <InputPanel />
           ) : step === 'generate' ? (
             <GeneratePanel onGoToInput={() => setStep('input')} />
+          ) : step === 'lowpoly' ? (
+            <LowPolyPanel />
           ) : (
             <Panel title={current.title} accent={current.color} className="step-detail">
               <p>{current.hint}</p>

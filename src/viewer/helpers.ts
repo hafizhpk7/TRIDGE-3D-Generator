@@ -77,9 +77,9 @@ const TEXTURE_KEYS = [
   'specularMap',
 ];
 
-function disposeMaterial(material: Material) {
+function disposeMaterial(material: Material, textures: boolean) {
   const record = material as unknown as Record<string, unknown>;
-  for (const key of TEXTURE_KEYS) {
+  for (const key of textures ? TEXTURE_KEYS : []) {
     const tex = record[key] as Texture | null | undefined;
     if (tex && typeof tex.dispose === 'function') {
       // Release the decoded bitmap held by glTF textures, not just the GPU copy.
@@ -91,13 +91,16 @@ function disposeMaterial(material: Material) {
   material.dispose();
 }
 
-/** Free every GPU and bitmap resource under `root`. */
-export function disposeObject(root: Object3D) {
+/**
+ * Free every GPU and bitmap resource under `root`.
+ * Pass `textures: false` when the textures are shared with another object that is still in use.
+ */
+export function disposeObject(root: Object3D, { textures = true } = {}) {
   root.traverse((o) => {
     const mesh = o as Mesh;
     if (mesh.geometry) mesh.geometry.dispose();
     const mats = mesh.material as Material | Material[] | undefined;
-    if (Array.isArray(mats)) mats.forEach(disposeMaterial);
-    else if (mats) disposeMaterial(mats);
+    if (Array.isArray(mats)) mats.forEach((m) => disposeMaterial(m, textures));
+    else if (mats) disposeMaterial(mats, textures);
   });
 }

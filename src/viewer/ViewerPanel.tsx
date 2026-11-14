@@ -10,6 +10,9 @@ import {
   type LoadedModel,
 } from './loadModel';
 import { useModelStore } from '../store/modelStore';
+import { useLowPolyStore } from '../store/lowPolyStore';
+import { applyPalette, buildProcessed } from '../pipeline/lowpoly/build';
+import { extractSource } from '../pipeline/lowpoly/source';
 import { Confetti } from './Confetti';
 import './ViewerPanel.css';
 
@@ -35,6 +38,7 @@ export default function ViewerPanel() {
   const engineRef = useRef<ViewerEngine | null>(null);
   const loadToken = useRef(0);
   const dragDepth = useRef(0);
+  const dividerDrag = useRef(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const [reducedMotion] = useState(prefersReducedMotion);
@@ -48,6 +52,16 @@ export default function ViewerPanel() {
   const [dragging, setDragging] = useState(false);
   const [burst, setBurst] = useState(0);
   const pending = useModelStore((s) => s.pending);
+  const [split, setSplit] = useState(0.5);
+  const result = useLowPolyStore((s) => s.result);
+  const resultMode = useLowPolyStore((s) => s.resultMode);
+  const palette = useLowPolyStore((s) => s.palette);
+  const paletteVersion = useLowPolyStore((s) => s.paletteVersion);
+  const view = useLowPolyStore((s) => s.view);
+  // Flat-shaded meshes are not indexed, so every triangle has its own three vertices.
+  const processedStats = result
+    ? { triangles: result.triangles, vertices: result.triangles * 3 }
+    : null;
 
   const show = useCallback((loaded: LoadedModel) => {
     const engine = engineRef.current;
@@ -55,6 +69,8 @@ export default function ViewerPanel() {
     engine.setModel(loaded.object, loaded.bytes);
     setStats(engine.getStats());
     setModelName(loaded.name);
+    // Hand the new model to the low-poly pipeline (it only starts working once that step is open).
+    useLowPolyStore.getState().setSource(extractSource(loaded.object));
   }, []);
 
   const invalidateLoads = useCallback(() => {
@@ -119,7 +135,7 @@ export default function ViewerPanel() {
     const startTimer = window.setTimeout(() => void loadSample(), 0);
 
     if (import.meta.env.DEV) {
-      (window as unknown as Record<string, unknown>).__tridgeViewer = { engine, loadSample };
+      (window as unknown as Record<string, unknown>).__tridgeViewer = { engine, loadSample, show };
     }
 
     return () => {
@@ -142,6 +158,35 @@ export default function ViewerPanel() {
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);
   }, []);
+
+  // Show the low-poly result next to the original.
+  useEffect(() => {
+    const engine = engineRef.current;
+    const source = useLowPolyStore.getState().source;
+    if (!engine) return;
+    if (!result || !source) {
+      engine.setProcessed(null);
+      return;
+    }
+    engine.setProcessed(buildProcessed(source, result, resultMode));
+  }, [result, resultMode]);
+
+  // Palette swatch edits recolor the existing mesh without another worker run.
+  useEffect(() => {
+    const engine = engineRef.current;
+    const group = engine?.getProcessedObject();
+    if (!group || !result || !palette || resultMode !== 'palette') return;
+    applyPalette(group, result, palette);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paletteVersion]);
+
+  useEffect(() => {
+    engineRef.current?.setViewMode(result ? view : 'original');
+  }, [view, result]);
+
+  useEffect(() => {
+    engineRef.current?.setSplitRatio(split);
+  }, [split]);
 
   // Show models handed over by other parts of the app (for example a finished generation).
   useEffect(() => {
@@ -203,6 +248,43 @@ export default function ViewerPanel() {
       >
         <div ref={stageRef} className="viewer__canvas" />
         <Confetti burst={burst} />
+        {result && view === 'split' && (
+          <>
+            <span className="viewer__tag viewer__tag--left">Original</span>
+            <span className="viewer__tag viewer__tag--right">Low poly</span>
+            <div
+              className="divider"
+              style={{ left: `${split * 100}%` }}
+              role="slider"
+              tabIndex={0}
+              aria-label="Before and after divider"
+              aria-orientation="horizontal"
+              aria-valuemin={5}
+              aria-valuemax={95}
+              aria-valuenow={Math.round(split * 100)}
+              onPointerDown={(e) => {
+                e.currentTarget.setPointerCapture(e.pointerId);
+                dividerDrag.current = true;
+              }}
+              onPointerMove={(e) => {
+                if (!dividerDrag.current) return;
+                const rect = e.currentTarget.parentElement!.getBoundingClientRect();
+                setSplit(Math.min(0.95, Math.max(0.05, (e.clientX - rect.left) / rect.width)));
+              }}
+              onPointerUp={() => {
+                dividerDrag.current = false;
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowLeft') setSplit((v) => Math.max(0.05, v - 0.05));
+                if (e.key === 'ArrowRight') setSplit((v) => Math.min(0.95, v + 0.05));
+              }}
+            >
+              <span className="divider__grip" aria-hidden="true">
+                ⇆
+              </span>
+            </div>
+          </>
+        )}
         {loading && <div className="viewer__loading">Loading model…</div>}
         {dragging && <div className="viewer__drop">Drop a .glb, .gltf or .obj file</div>}
       </div>
@@ -272,8 +354,14 @@ export default function ViewerPanel() {
         {stats ? (
           <>
             <Chip color="violet">{modelName}</Chip>
-            <Chip color="mint">{formatCount(stats.triangles)} triangles</Chip>
-            <Chip color="sky">{formatCount(stats.vertices)} vertices</Chip>
+            <Chip color="mint">
+              {formatCount(stats.triangles)} triangles
+              {processedStats && ` → ${formatCount(processedStats.triangles)} low poly`}
+            </Chip>
+            <Chip color="sky">
+              {formatCount(stats.vertices)} vertices
+              {processedStats && ` → ${formatCount(processedStats.vertices)}`}
+            </Chip>
             <Chip color="yellow">{formatBytes(stats.bytes)}</Chip>
           </>
         ) : (
