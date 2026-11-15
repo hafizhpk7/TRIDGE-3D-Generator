@@ -23,6 +23,10 @@ import {
   Vector3,
   BufferAttribute,
   BufferGeometry,
+  LineBasicMaterial,
+  LineSegments,
+  Plane,
+  SphereGeometry,
   WebGLRenderer,
 } from 'three';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
@@ -64,6 +68,14 @@ export class ViewerEngine {
   private gizmoListener: GizmoListener | null = null;
   private gizmoDragging = false;
   private highlight: Mesh | null = null;
+  private rigged: Object3D | null = null;
+  private motion: ((seconds: number) => Transform) | null = null;
+  private markerGroup: Group | null = null;
+  private markerMeshes = new Map<string, Mesh>();
+  private markerLines: LineSegments | null = null;
+  private markerParents: { name: string; parent: string | null }[] = [];
+  private markerListener: MarkerListener | null = null;
+  private markerDrag: { name: string; plane: Plane } | null = null;
   private readonly raycaster = new Raycaster();
   private stats: ModelStats | null = null;
   private wireframe = false;
@@ -105,6 +117,11 @@ export class ViewerEngine {
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(container);
     this.resize();
+    const dom = this.renderer.domElement;
+    dom.addEventListener('pointerdown', this.onMarkerDown, { capture: true });
+    dom.addEventListener('pointermove', this.onMarkerMove);
+    dom.addEventListener('pointerup', this.onMarkerUp);
+    dom.addEventListener('pointercancel', this.onMarkerUp);
   }
 
   // ---- scene setup -------------------------------------------------------
@@ -187,13 +204,19 @@ export class ViewerEngine {
   }
 
   private renderFrame() {
+    if (this.motion) {
+      const t = this.motion((performance.now() - this.startedAt) / 1000);
+      this.modelHolder.position.set(...t.position);
+      this.modelHolder.rotation.set(t.rotation[0], t.rotation[1], t.rotation[2], 'XYZ');
+      this.modelHolder.scale.set(...t.scale);
+    }
     if (this.updater) {
       const craft = (this.modelObject?.userData.craft as CraftObjectInfo | undefined) ?? null;
       this.updater((performance.now() - this.startedAt) / 1000, craft);
     }
     const original = this.model;
     const processed = this.processed;
-    if (!(this.viewMode === 'split' && original && processed)) {
+    if (!(this.viewMode === 'split' && original && processed && !this.rigged)) {
       this.renderer.render(this.scene, this.camera);
       return;
     }
@@ -297,6 +320,10 @@ export class ViewerEngine {
 
   clearModel() {
     this.highlight = null; // disposed together with the model it was attached to
+    this.markerGroup = null;
+    this.markerMeshes.clear();
+    this.markerLines = null;
+    this.setRigged(null);
     this.setProcessed(null);
     if (!this.model) return;
     this.modelHolder.remove(this.model);
@@ -357,6 +384,12 @@ export class ViewerEngine {
 
   private applyVisibility() {
     if (!this.model) return;
+    if (this.rigged) {
+      this.model.visible = false;
+      if (this.processed) this.processed.visible = false;
+      this.rigged.visible = true;
+      return;
+    }
     if (!this.processed) {
       this.model.visible = true;
       return;
@@ -494,6 +527,198 @@ export class ViewerEngine {
     return this.gizmoDragging || Boolean(this.gizmo?.axis);
   }
 
+  // ---- rigging: rigged model, joint markers, whole-model motion --------------------------
+
+  /** The object that rigging should work on: the low-poly result when it is showing, else the original. */
+  getRigSource(): { root: Object3D; variant: 'original' | 'lowpoly' } | null {
+    if (!this.modelObject) return null;
+    if (this.processed && this.viewMode !== 'original') {
+      const inner = this.processed.children[0];
+      if (inner) return { root: inner, variant: 'lowpoly' };
+    }
+    return { root: this.modelObject, variant: 'original' };
+  }
+
+  /** Show a rigged copy in place of the model. Pass null to bring the previous view back. */
+  setRigged(object: Object3D | null) {
+    if (this.rigged) {
+      this.modelHolder.remove(this.rigged);
+      disposeObject(this.rigged, { textures: false });
+      this.rigged = null;
+    }
+    if (object && this.modelObject) {
+      const wrapper = new Group();
+      wrapper.add(object);
+      object.position.copy(this.modelObject.position);
+      wrapper.scale.setScalar(this.modelScale);
+      this.modelHolder.add(wrapper);
+      this.rigged = wrapper;
+      this.applyMaterialModes();
+    }
+    this.applyVisibility();
+  }
+
+  getRiggedObject(): Object3D | null {
+    return this.rigged?.children[0] ?? null;
+  }
+
+  /** Move the whole model every frame. Pass null to stop and put it back. */
+  setMotion(fn: ((seconds: number) => Transform) | null) {
+    this.motion = fn;
+    if (!fn) {
+      this.modelHolder.position.set(0, 0, 0);
+      this.modelHolder.rotation.set(0, 0, 0);
+      this.modelHolder.scale.set(1, 1, 1);
+    }
+  }
+
+  /** Model height in scene units, for scaling motion. */
+  getModelHeight(): number {
+    if (!this.model) return 1;
+    const box = new Box3().setFromObject(this.model);
+    return Math.max(0.01, box.max.y - box.min.y);
+  }
+
+  onMarkerDrag(listener: MarkerListener | null) {
+    this.markerListener = listener;
+  }
+
+  /** Show draggable joint markers (positions in model space). Pass null to hide them. */
+  setMarkers(markers: MarkerDef[] | null) {
+    if (this.markerGroup) {
+      this.markerGroup.parent?.remove(this.markerGroup);
+      this.markerGroup.traverse((o) => {
+        const m = o as Mesh;
+        m.geometry?.dispose();
+        (m.material as Material | undefined)?.dispose();
+      });
+      this.markerGroup = null;
+      this.markerMeshes.clear();
+      this.markerLines = null;
+    }
+    if (!markers || markers.length === 0 || !this.modelObject) return;
+    const group = new Group();
+    // Marker size is set in model units, so divide by the display scale to get a steady size on screen.
+    const radius = 0.05 / this.modelScale;
+    const geometry = new SphereGeometry(radius, 14, 10);
+    for (const m of markers) {
+      const mesh = new Mesh(
+        geometry,
+        new MeshBasicMaterial({
+          color: m.color,
+          depthTest: false,
+          transparent: true,
+          opacity: 0.95,
+        }),
+      );
+      mesh.position.set(...m.position);
+      mesh.renderOrder = 20;
+      mesh.userData.joint = m.name;
+      mesh.frustumCulled = false;
+      group.add(mesh);
+      this.markerMeshes.set(m.name, mesh);
+    }
+    this.markerParents = markers.map((m) => ({ name: m.name, parent: m.parent }));
+    const lines = new LineSegments(
+      new BufferGeometry(),
+      new LineBasicMaterial({ color: 0xffffff, depthTest: false, transparent: true, opacity: 0.8 }),
+    );
+    lines.renderOrder = 19;
+    lines.frustumCulled = false;
+    group.add(lines);
+    this.markerLines = lines;
+    this.modelObject.add(group);
+    this.markerGroup = group;
+    this.refreshMarkerLines();
+  }
+
+  private refreshMarkerLines() {
+    if (!this.markerLines) return;
+    const pts: number[] = [];
+    for (const { name, parent } of this.markerParents) {
+      if (!parent) continue;
+      const a = this.markerMeshes.get(name);
+      const b = this.markerMeshes.get(parent);
+      if (a && b)
+        pts.push(
+          a.position.x,
+          a.position.y,
+          a.position.z,
+          b.position.x,
+          b.position.y,
+          b.position.z,
+        );
+    }
+    this.markerLines.geometry.setAttribute(
+      'position',
+      new BufferAttribute(new Float32Array(pts), 3),
+    );
+  }
+
+  /** Move one marker (for example the mirrored twin of the one being dragged). */
+  updateMarker(name: string, position: [number, number, number]) {
+    this.markerMeshes.get(name)?.position.set(...position);
+    this.refreshMarkerLines();
+  }
+
+  private markerHit(e: PointerEvent): Mesh | null {
+    if (this.markerMeshes.size === 0) return null;
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    const ndc = new Vector2(
+      ((e.clientX - rect.left) / rect.width) * 2 - 1,
+      -(((e.clientY - rect.top) / rect.height) * 2 - 1),
+    );
+    this.raycaster.setFromCamera(ndc, this.camera);
+    const hits = this.raycaster.intersectObjects([...this.markerMeshes.values()], false);
+    return (hits[0]?.object as Mesh | undefined) ?? null;
+  }
+
+  private onMarkerDown = (e: PointerEvent) => {
+    const hit = this.markerHit(e);
+    if (!hit || !this.markerListener) return;
+    const world = hit.getWorldPosition(new Vector3());
+    const normal = this.camera.getWorldDirection(new Vector3());
+    this.markerDrag = {
+      name: hit.userData.joint as string,
+      plane: new Plane().setFromNormalAndCoplanarPoint(normal, world),
+    };
+    this.controls.enabled = false;
+    this.renderer.domElement.setPointerCapture(e.pointerId);
+    e.stopImmediatePropagation();
+    e.preventDefault();
+    this.markerListener(this.markerDrag.name, null, 'start');
+  };
+
+  private onMarkerMove = (e: PointerEvent) => {
+    if (!this.markerDrag) {
+      this.renderer.domElement.style.cursor = this.markerHit(e) ? 'grab' : '';
+      return;
+    }
+    if (!this.modelObject) return;
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    const ndc = new Vector2(
+      ((e.clientX - rect.left) / rect.width) * 2 - 1,
+      -(((e.clientY - rect.top) / rect.height) * 2 - 1),
+    );
+    this.raycaster.setFromCamera(ndc, this.camera);
+    const point = new Vector3();
+    if (!this.raycaster.ray.intersectPlane(this.markerDrag.plane, point)) return;
+    this.modelObject.updateWorldMatrix(true, false);
+    const local = this.modelObject.worldToLocal(point);
+    this.markerListener?.(this.markerDrag.name, [local.x, local.y, local.z], 'move');
+  };
+
+  private onMarkerUp = (e: PointerEvent) => {
+    if (!this.markerDrag) return;
+    const name = this.markerDrag.name;
+    this.markerDrag = null;
+    this.controls.enabled = true;
+    if (this.renderer.domElement.hasPointerCapture(e.pointerId)) {
+      this.renderer.domElement.releasePointerCapture(e.pointerId);
+    }
+    this.markerListener?.(name, null, 'end');
+  };
+
   // ---- display modes -----------------------------------------------------
 
   setWireframe(on: boolean) {
@@ -535,6 +760,11 @@ export class ViewerEngine {
 
   dispose() {
     this.disposed = true;
+    const dom = this.renderer.domElement;
+    dom.removeEventListener('pointerdown', this.onMarkerDown, { capture: true });
+    dom.removeEventListener('pointermove', this.onMarkerMove);
+    dom.removeEventListener('pointerup', this.onMarkerUp);
+    dom.removeEventListener('pointercancel', this.onMarkerUp);
     this.gizmo?.dispose();
     this.stop();
     this.resizeObserver.disconnect();
@@ -561,3 +791,22 @@ export type GizmoListener = (
   },
   phase: 'start' | 'change' | 'end',
 ) => void;
+
+export interface MarkerDef {
+  name: string;
+  parent: string | null;
+  position: [number, number, number];
+  color: number;
+}
+
+export type MarkerListener = (
+  name: string,
+  position: [number, number, number] | null,
+  phase: 'start' | 'move' | 'end',
+) => void;
+
+export interface Transform {
+  position: [number, number, number];
+  rotation: [number, number, number];
+  scale: [number, number, number];
+}

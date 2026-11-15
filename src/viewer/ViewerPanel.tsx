@@ -15,6 +15,8 @@ import { applyPalette, buildProcessed } from '../pipeline/lowpoly/build';
 import { extractSource } from '../pipeline/lowpoly/source';
 import { Confetti } from './Confetti';
 import { useCraftStore, useCraftUi } from '../craft/store';
+import { registerEngine } from '../rig/bridge';
+import { useRigStore } from '../rig/store';
 import { useCraftViewer } from '../craft/useCraftViewer';
 import './ViewerPanel.css';
 
@@ -72,6 +74,7 @@ export default function ViewerPanel() {
     // A regular model replaces any Craft model.
     useCraftStore.getState().clear();
     useCraftUi.getState().setPreview(false);
+    useRigStore.getState().reset();
     engine.setHighlight(null);
     engine.setGizmo(null);
     engine.setModel(loaded.object, loaded.bytes);
@@ -147,6 +150,7 @@ export default function ViewerPanel() {
       return;
     }
     engineRef.current = engine;
+    registerEngine(engine);
     engine.setAutoRotate(!reducedMotion);
     engine.start();
     // Deferred so React finishes mounting first (and StrictMode's first pass is cancelled).
@@ -159,6 +163,7 @@ export default function ViewerPanel() {
     return () => {
       window.clearTimeout(startTimer);
       invalidateLoads();
+      registerEngine(null);
       engine.dispose();
       engineRef.current = null;
     };

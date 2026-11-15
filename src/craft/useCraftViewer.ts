@@ -3,6 +3,7 @@ import type { MutableRefObject, PointerEvent } from 'react';
 import type { GizmoListener, ViewerEngine } from '../viewer/ViewerEngine';
 import { computeStats, type ModelStats } from '../viewer/helpers';
 import { useLowPolyStore } from '../store/lowPolyStore';
+import { useRigStore } from '../rig/store';
 import { partAtFace } from './builder/build';
 import { createCraftObject } from './builder/object';
 import { clone, findPart, rotatePart, scalePart, sourceIdFor, translatePart } from './editor/ops';
@@ -59,6 +60,7 @@ export function useCraftViewer(
     lastEpoch.current = builtEpoch;
     engine.onGizmo(gizmoHandlerRef.current);
     useLowPolyStore.getState().setSource(null);
+    useRigStore.getState().reset();
     onShownRef.current({ stats: computeStats(group, 0), name: currentSpec.name });
   }, [built, builtEpoch, engineRef]);
 

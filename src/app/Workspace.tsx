@@ -6,6 +6,7 @@ import { GeneratePanel } from '../pipeline/providers/GeneratePanel';
 import { LowPolyPanel } from '../pipeline/lowpoly/LowPolyPanel';
 import { CraftDetailPanel } from '../craft/ui/CraftDetailPanel';
 import { useCraftStore } from '../craft/store';
+import { RigPanel } from '../rig/RigPanel';
 import { StepTracker } from './StepTracker';
 import { STEPS } from './steps';
 import { ThemeToggle } from './ThemeToggle';
@@ -100,10 +101,8 @@ export function Workspace() {
                   id: label.toLowerCase().replace(' ', '-'),
                   label,
                   content:
-                    label === 'Rig' && craftSpec ? (
-                      <p className="muted">
-                        Already rigged. Move the joints in Craft, on the Edit tab, under Bones.
-                      </p>
+                    label === 'Rig' ? (
+                      <RigPanel craft={Boolean(craftSpec)} />
                     ) : (
                       <p className="muted">{label} tools will appear here.</p>
                     ),
