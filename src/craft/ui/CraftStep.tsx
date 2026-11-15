@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button, Chip, Panel, Tabs } from '../../design/components';
+import { deletePart } from '../editor/ops';
 import { useCraftStore, useCraftUi } from '../store';
 import { AskClaudeTab } from './AskClaudeTab';
 import { EditTab } from './EditTab';
@@ -50,13 +51,11 @@ export function CraftStep({ active }: { active: boolean }) {
         else if (k === 'escape') store.select(null);
         else if ((k === 'delete' || k === 'backspace') && store.selectedId) {
           e.preventDefault();
-          void import('../editor/ops').then(({ deletePart }) => {
-            const s = useCraftStore.getState();
-            if (s.spec && s.selectedId) {
-              s.edit(deletePart(s.spec, s.selectedId));
-              s.select(null);
-            }
-          });
+          const cur = useCraftStore.getState();
+          if (cur.spec && cur.selectedId) {
+            cur.edit(deletePart(cur.spec, cur.selectedId));
+            cur.select(null);
+          }
         }
       }
     };
