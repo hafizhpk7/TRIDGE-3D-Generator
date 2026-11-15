@@ -1,6 +1,7 @@
 /// <reference lib="webworker" />
-import { env, pipeline, RawImage } from '@huggingface/transformers';
+import { pipeline, RawImage } from '@huggingface/transformers';
 import { BG_MODEL_DTYPE, BG_MODEL_ID } from '../pipeline/input/config';
+import { configureTransformers, downloadProgress } from './ortRuntime';
 
 export type BgWorkerRequest = { type: 'run'; id: number; blob: Blob; ortBase: string };
 export type BgWorkerResponse =
@@ -8,47 +9,16 @@ export type BgWorkerResponse =
   | { type: 'done'; id: number; width: number; height: number; buffer: ArrayBuffer }
   | { type: 'error'; id: number; message: string };
 
-env.allowLocalModels = false;
-env.useBrowserCache = true;
-function configureRuntime(ortBase: string) {
-  const onnx = env.backends.onnx as { wasm?: { wasmPaths?: unknown; numThreads?: number } };
-  if (!onnx.wasm) return;
-  // Serve the ONNX runtime from our own origin instead of a CDN (files live in public/ort/).
-  onnx.wasm.wasmPaths = {
-    mjs: ortBase + 'ort-wasm-simd-threaded.mjs',
-    wasm: ortBase + 'ort-wasm-simd-threaded.wasm',
-  };
-  // Cross-origin isolation is not available on static hosts, so stay single-threaded.
-  onnx.wasm.numThreads = 1;
-}
-
 type Segmenter = (input: RawImage) => Promise<RawImage>;
 let segmenterPromise: Promise<Segmenter> | null = null;
 
 function loadSegmenter(ortBase: string, report: (p: number) => void): Promise<Segmenter> {
   if (!segmenterPromise) {
-    configureRuntime(ortBase);
-    const files = new Map<string, { loaded: number; total: number }>();
+    configureTransformers(ortBase);
     segmenterPromise = pipeline('background-removal', BG_MODEL_ID, {
       dtype: BG_MODEL_DTYPE,
       device: 'wasm',
-      progress_callback: (e: {
-        status: string;
-        file?: string;
-        loaded?: number;
-        total?: number;
-      }) => {
-        if (e.status === 'progress' && e.file && e.total) {
-          files.set(e.file, { loaded: e.loaded ?? 0, total: e.total });
-          let loaded = 0;
-          let total = 0;
-          for (const f of files.values()) {
-            loaded += f.loaded;
-            total += f.total;
-          }
-          report(total ? loaded / total : 0);
-        }
-      },
+      progress_callback: downloadProgress(report),
     }).then((p) => p as unknown as Segmenter);
     // Let a failed download be retried.
     segmenterPromise.catch(() => {

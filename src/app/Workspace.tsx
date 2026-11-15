@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button, IconButton, Modal, Panel, Tabs, useToast } from '../design/components';
-import { InputPanel } from '../pipeline/input/InputPanel';
+import { InputStep } from './InputStep';
 import { GeneratePanel } from '../pipeline/providers/GeneratePanel';
 import { LowPolyPanel } from '../pipeline/lowpoly/LowPolyPanel';
 import { StepTracker } from './StepTracker';
@@ -46,9 +46,12 @@ export function Workspace() {
         <div className="workspace__steps">
           <StepTracker current={step} onSelect={setStep} />
           {step === 'input' ? (
-            <InputPanel />
+            <InputStep />
           ) : step === 'generate' ? (
-            <GeneratePanel onGoToInput={() => setStep('input')} />
+            <GeneratePanel
+              onGoToInput={() => setStep('input')}
+              onGoToLowPoly={() => setStep('lowpoly')}
+            />
           ) : step === 'lowpoly' ? (
             <LowPolyPanel />
           ) : (

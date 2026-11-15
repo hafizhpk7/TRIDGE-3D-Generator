@@ -13,9 +13,11 @@ interface Props {
   value: string;
   onChange: (id: string) => void;
   ariaLabel: string;
+  /** Keep inactive panels mounted (hidden) so their state survives switching tabs. */
+  keepMounted?: boolean;
 }
 
-export function Tabs({ tabs, value, onChange, ariaLabel }: Props) {
+export function Tabs({ tabs, value, onChange, ariaLabel, keepMounted = false }: Props) {
   const base = useId();
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -61,15 +63,23 @@ export function Tabs({ tabs, value, onChange, ariaLabel }: Props) {
           );
         })}
       </div>
-      <div
-        role="tabpanel"
-        id={`${base}-panel-${active.id}`}
-        aria-labelledby={`${base}-tab-${active.id}`}
-        className="tabs__panel"
-        tabIndex={0}
-      >
-        {active.content}
-      </div>
+      {tabs.map((t) => {
+        const isActive = t.id === active.id;
+        if (!isActive && !keepMounted) return null;
+        return (
+          <div
+            key={t.id}
+            role="tabpanel"
+            id={`${base}-panel-${t.id}`}
+            aria-labelledby={`${base}-tab-${t.id}`}
+            className="tabs__panel"
+            tabIndex={0}
+            hidden={!isActive}
+          >
+            {t.content}
+          </div>
+        );
+      })}
     </div>
   );
 }

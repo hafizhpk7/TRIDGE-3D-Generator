@@ -51,6 +51,7 @@ export default function ViewerPanel() {
   const [loading, setLoading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [burst, setBurst] = useState(0);
+  const [badge, setBadge] = useState('');
   const pending = useModelStore((s) => s.pending);
   const [split, setSplit] = useState(0.5);
   const result = useLowPolyStore((s) => s.result);
@@ -69,6 +70,7 @@ export default function ViewerPanel() {
     engine.setModel(loaded.object, loaded.bytes);
     setStats(engine.getStats());
     setModelName(loaded.name);
+    setBadge(loaded.badge ?? '');
     // Hand the new model to the low-poly pipeline (it only starts working once that step is open).
     useLowPolyStore.getState().setSource(extractSource(loaded.object));
   }, []);
@@ -193,7 +195,9 @@ export default function ViewerPanel() {
     if (!pending) return;
     const timer = window.setTimeout(() => {
       void runLoad(async () => {
-        const loaded = await loadModelFromBuffer(await pending.blob.arrayBuffer(), pending.name);
+        const loaded: LoadedModel = pending.object
+          ? { object: pending.object, bytes: 0, name: pending.name, badge: pending.badge }
+          : await loadModelFromBuffer(await pending.blob!.arrayBuffer(), pending.name);
         if (pending.celebrate) setBurst((n) => n + 1);
         return loaded;
       });
@@ -354,6 +358,7 @@ export default function ViewerPanel() {
         {stats ? (
           <>
             <Chip color="violet">{modelName}</Chip>
+            {badge && <Chip color="orange">{badge}</Chip>}
             <Chip color="mint">
               {formatCount(stats.triangles)} triangles
               {processedStats && ` → ${formatCount(processedStats.triangles)} low poly`}
@@ -362,7 +367,7 @@ export default function ViewerPanel() {
               {formatCount(stats.vertices)} vertices
               {processedStats && ` → ${formatCount(processedStats.vertices)}`}
             </Chip>
-            <Chip color="yellow">{formatBytes(stats.bytes)}</Chip>
+            {stats.bytes > 0 && <Chip color="yellow">{formatBytes(stats.bytes)}</Chip>}
           </>
         ) : (
           <Chip color="violet">{loading ? 'Loading…' : 'No model yet'}</Chip>

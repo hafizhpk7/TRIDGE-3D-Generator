@@ -4,6 +4,8 @@ import { useInputStore } from '../../store/inputStore';
 import { useModelStore } from '../../store/modelStore';
 import { useProviderStore } from '../../store/providerStore';
 import { describeProgress, formatElapsed } from './describe';
+import { makeRelief, type ReliefStage } from '../relief/makeRelief';
+import { DEPTH_MODEL_SIZE_LABEL } from '../relief/config';
 import { PROVIDERS, ProviderError, generateWithFallback, orderProviders } from './index';
 import type { ImageTo3DProvider, Progress, ProviderStatus } from './index';
 import './GeneratePanel.css';
@@ -23,9 +25,10 @@ const STATUS_COLOR: Record<ProviderStatus, 'mint' | 'yellow' | 'pink' | 'violet'
 
 interface Props {
   onGoToInput: () => void;
+  onGoToLowPoly: () => void;
 }
 
-export function GeneratePanel({ onGoToInput }: Props) {
+export function GeneratePanel({ onGoToInput, onGoToLowPoly }: Props) {
   const toast = useToast();
   const prepared = useInputStore((s) => s.prepared);
   const statuses = useProviderStore((s) => s.statuses);
@@ -34,6 +37,7 @@ export function GeneratePanel({ onGoToInput }: Props) {
   const token = useProviderStore((s) => s.token);
   const setToken = useProviderStore((s) => s.setToken);
   const showModel = useModelStore((s) => s.show);
+  const showObject = useModelStore((s) => s.showObject);
 
   const [running, setRunning] = useState(false);
   const [active, setActive] = useState<ImageTo3DProvider | null>(null);
@@ -52,6 +56,34 @@ export function GeneratePanel({ onGoToInput }: Props) {
   }, [checkAll]);
 
   useEffect(() => () => abort.current?.abort(), []);
+
+  // 2.5D relief: the no-server fallback.
+  const [reliefStage, setReliefStage] = useState<ReliefStage | null>(null);
+  const [reliefError, setReliefError] = useState('');
+  const reliefAbort = useRef<AbortController | null>(null);
+  useEffect(() => () => reliefAbort.current?.abort(), []);
+
+  const startRelief = async () => {
+    if (!prepared || reliefStage) return;
+    const controller = new AbortController();
+    reliefAbort.current = controller;
+    setReliefError('');
+    setReliefStage({ step: 'cutout', progress: null });
+    try {
+      const group = await makeRelief(prepared.blob, setReliefStage, controller.signal);
+      showObject(group, 'Relief from picture', { celebrate: true, badge: '2.5D relief' });
+      toast.show('2.5D relief ready. Make it chunky in the Low poly step.', 'success');
+      onGoToLowPoly();
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') toast.show('Cancelled.');
+      else
+        setReliefError(
+          e instanceof Error ? e.message : 'Could not make a relief from this picture.',
+        );
+    } finally {
+      setReliefStage(null);
+    }
+  };
 
   // Elapsed-time ticker while a job runs.
   useEffect(() => {
@@ -172,6 +204,45 @@ export function GeneratePanel({ onGoToInput }: Props) {
         </div>
       )}
 
+      <section className="relief" aria-label="2.5D relief">
+        <h3>No server? Make a 2.5D relief</h3>
+        <p className="muted">
+          A flat-backed relief made on your own computer from the picture. It looks 3D from the
+          front but has no back side. First use downloads a {DEPTH_MODEL_SIZE_LABEL} model.
+        </p>
+        {reliefStage ? (
+          <div className="generate__progress" role="status">
+            <p>{describeRelief(reliefStage)}</p>
+            <ProgressBar
+              label="Making relief"
+              value={
+                reliefStage.step !== 'mesh' &&
+                reliefStage.progress?.stage === 'download' &&
+                reliefStage.progress.progress > 0
+                  ? reliefStage.progress.progress * 100
+                  : undefined
+              }
+            />
+            <Button variant="ghost" onClick={() => reliefAbort.current?.abort()}>
+              Cancel
+            </Button>
+          </div>
+        ) : (
+          <Button
+            variant="secondary"
+            disabled={!prepared || running}
+            onClick={() => void startRelief()}
+          >
+            Make 2.5D relief
+          </Button>
+        )}
+        {reliefError && (
+          <p className="generate__error" role="alert">
+            {reliefError}
+          </p>
+        )}
+      </section>
+
       {error && (
         <p className="generate__error" role="alert">
           {error}
@@ -237,4 +308,18 @@ export function GeneratePanel({ onGoToInput }: Props) {
       </p>
     </Panel>
   );
+}
+
+function describeRelief(s: ReliefStage): string {
+  if (s.step === 'cutout') {
+    return s.progress?.stage === 'download'
+      ? 'Downloading the background remover (first time only)…'
+      : 'Removing the background…';
+  }
+  if (s.step === 'depth') {
+    return s.progress?.stage === 'download'
+      ? 'Downloading the depth model (first time only)…'
+      : 'Working out how far away each part is…';
+  }
+  return 'Building the relief…';
 }

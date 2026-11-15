@@ -31,11 +31,17 @@ const WORK_SIZE = 768;
 
 type Phase = 'idle' | 'removing';
 
-export function InputPanel() {
+export function InputPanel({ active = true }: { active?: boolean }) {
   const toast = useToast();
   const prepared = useInputStore((s) => s.prepared);
   const setPrepared = useInputStore((s) => s.setPrepared);
   const clearPrepared = useInputStore((s) => s.clear);
+  const incoming = useInputStore((s) => s.incoming);
+  const setIncoming = useInputStore((s) => s.setIncoming);
+  const activeRef = useRef(active);
+  useEffect(() => {
+    activeRef.current = active;
+  }, [active]);
 
   const [image, setImage] = useState<DecodedImage | null>(null);
   const [fileName, setFileName] = useState('');
@@ -93,6 +99,7 @@ export function InputPanel() {
   // Paste from the clipboard anywhere on the page, unless the user is typing.
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
+      if (!activeRef.current) return;
       const target = e.target as HTMLElement | null;
       if (
         target &&
@@ -110,6 +117,16 @@ export function InputPanel() {
     window.addEventListener('paste', onPaste);
     return () => window.removeEventListener('paste', onPaste);
   }, [loadFile]);
+
+  // Take a picture handed over from elsewhere, such as one picked from generated pictures.
+  useEffect(() => {
+    if (!incoming) return;
+    const timer = window.setTimeout(() => {
+      setIncoming(null);
+      void loadFile(incoming);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [incoming, loadFile, setIncoming]);
 
   const onDrop = (e: DragEvent) => {
     e.preventDefault();

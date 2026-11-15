@@ -7,6 +7,8 @@ export interface LoadedModel {
   object: Object3D;
   bytes: number;
   name: string;
+  /** Short label shown next to the stats, such as "2.5D relief". */
+  badge?: string;
 }
 
 export class ModelLoadError extends Error {}
