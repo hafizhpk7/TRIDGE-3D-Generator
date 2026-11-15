@@ -1,0 +1,261 @@
+.craft {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.craft .panel__title {
+  margin-bottom: 0;
+}
+.craft-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.craft h3 {
+  margin-bottom: var(--space-2);
+  font-size: 1.05rem;
+}
+.craft-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.craft-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+.craft-grid3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+.craft fieldset {
+  min-width: 0;
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+}
+.craft legend {
+  padding: 0 var(--space-1);
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+
+/* form fields */
+.field,
+.selectfield,
+.numfield {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.field label,
+.selectfield label,
+.numfield label {
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+.craft textarea,
+.craft input[type='text'],
+.craft input[type='password'],
+.craft input[type='number'],
+.craft select {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+.craft textarea {
+  resize: vertical;
+}
+.craft-prompt {
+  margin-top: var(--space-2);
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.75rem;
+}
+.colorfield {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-right: var(--space-3);
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+.colorfield input[type='color'] {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: var(--border);
+  border-radius: 12px;
+  background: none;
+  cursor: pointer;
+}
+.colorfield input[type='color']::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+.colorfield input[type='color']::-webkit-color-swatch {
+  border: 0;
+  border-radius: 8px;
+}
+.palette,
+.params {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+.params > .slider {
+  flex: 1 1 100%;
+}
+
+/* templates */
+.templates {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: var(--space-2);
+}
+.template {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-2);
+  border: var(--border);
+  border-radius: 16px;
+  background: var(--surface-2);
+  font-weight: 800;
+  cursor: pointer;
+}
+.template img,
+.template__blank {
+  display: block;
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+  background: var(--surface);
+}
+.template--on {
+  background: var(--yellow);
+  color: var(--on-color);
+  box-shadow: var(--shadow-sm);
+}
+
+/* part list */
+.partlist {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 220px;
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+.partlist__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 40px;
+  padding: 4px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: var(--surface-2);
+  text-align: left;
+  cursor: pointer;
+}
+.partlist__item--on {
+  background: var(--yellow);
+  color: var(--on-color);
+}
+.partlist__dot {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+}
+.partlist__name {
+  flex: 1;
+  overflow: hidden;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.partlist__shape {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+/* messages */
+.craft-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  background: var(--pink);
+  color: var(--on-color);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.craft-error ul,
+.craft-warnings ul {
+  margin: var(--space-1) 0;
+  padding-left: 1.2em;
+}
+.craft-warn {
+  padding: var(--space-2) var(--space-3);
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: var(--yellow);
+  color: var(--on-color);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.craft-warnings {
+  font-size: 0.85rem;
+}
+.craft summary {
+  min-height: 32px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.craft-versions {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.craft-versions li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: 0.9rem;
+}
+.craft-photo {
+  border: var(--border);
+  border-radius: 8px;
+  object-fit: cover;
+}
+.craft-api > * + * {
+  margin-top: var(--space-3);
+}
+.partedit {
+  padding-top: var(--space-2);
+  border-top: 3px dashed var(--ink);
+}

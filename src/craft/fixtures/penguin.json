@@ -1,0 +1,121 @@
+{
+  "version": 1,
+  "name": "Chubby penguin with red scarf",
+  "bodyType": "bird",
+  "palette": {
+    "black": "#2B2350",
+    "belly": "#FFFFFF",
+    "beak": "#FFB23E",
+    "scarf": "#E63946",
+    "cheek": "#FF9FB5"
+  },
+  "bones": [
+    { "name": "root", "parent": null, "head": [0, 0, 0] },
+    { "name": "body", "parent": "root", "head": [0, 1.1, 0] },
+    { "name": "head", "parent": "body", "head": [0, 2.1, 0.1] },
+    { "name": "wing_l", "parent": "body", "head": [0.85, 1.6, 0], "mirror": "x" },
+    { "name": "leg_l", "parent": "body", "head": [0.4, 0.4, 0.1], "mirror": "x" }
+  ],
+  "parts": [
+    {
+      "id": "body",
+      "shape": "sphere",
+      "radii": [0.95, 1.15, 0.9],
+      "position": [0, 1.2, 0],
+      "color": "black",
+      "bone": "body"
+    },
+    {
+      "id": "belly",
+      "shape": "sphere",
+      "radii": [0.7, 0.95, 0.5],
+      "position": [0, 1.1, 0.5],
+      "color": "belly",
+      "bone": "body"
+    },
+    {
+      "id": "head",
+      "shape": "sphere",
+      "radii": [0.75, 0.7, 0.7],
+      "position": [0, 2.35, 0.1],
+      "color": "black",
+      "bone": "head"
+    },
+    {
+      "id": "face",
+      "shape": "sphere",
+      "radii": [0.5, 0.42, 0.3],
+      "position": [0, 2.3, 0.5],
+      "color": "belly",
+      "bone": "head"
+    },
+    {
+      "id": "beak",
+      "shape": "cone",
+      "radius": 0.2,
+      "height": 0.4,
+      "sides": 4,
+      "position": [0, 2.2, 0.85],
+      "rotation": [90, 0, 0],
+      "color": "beak",
+      "bone": "head"
+    },
+    {
+      "id": "eye_l",
+      "shape": "sphere",
+      "radii": [0.09, 0.12, 0.06],
+      "position": [0.28, 2.45, 0.68],
+      "color": "black",
+      "bone": "head",
+      "mirror": "x"
+    },
+    {
+      "id": "cheek_l",
+      "shape": "sphere",
+      "radii": [0.12, 0.08, 0.05],
+      "position": [0.42, 2.25, 0.62],
+      "color": "cheek",
+      "bone": "head",
+      "mirror": "x"
+    },
+    {
+      "id": "scarf",
+      "shape": "torus",
+      "radius": 0.62,
+      "tube": 0.17,
+      "position": [0, 1.85, 0.08],
+      "rotation": [90, 0, 0],
+      "color": "scarf",
+      "bone": "body"
+    },
+    {
+      "id": "scarf_tail",
+      "shape": "box",
+      "size": [0.3, 0.7, 0.14],
+      "bevel": 0.2,
+      "position": [0.35, 1.45, 0.62],
+      "rotation": [0, 0, 8],
+      "color": "scarf",
+      "bone": "body"
+    },
+    {
+      "id": "wing_l",
+      "shape": "sphere",
+      "radii": [0.2, 0.7, 0.4],
+      "position": [1.0, 1.3, 0],
+      "rotation": [0, 0, -12],
+      "color": "black",
+      "bone": "wing_l",
+      "mirror": "x"
+    },
+    {
+      "id": "foot_l",
+      "shape": "sphere",
+      "radii": [0.3, 0.1, 0.42],
+      "position": [0.4, 0.1, 0.3],
+      "color": "beak",
+      "bone": "leg_l",
+      "mirror": "x"
+    }
+  ]
+}

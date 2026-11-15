@@ -14,6 +14,8 @@ import { useLowPolyStore } from '../store/lowPolyStore';
 import { applyPalette, buildProcessed } from '../pipeline/lowpoly/build';
 import { extractSource } from '../pipeline/lowpoly/source';
 import { Confetti } from './Confetti';
+import { useCraftStore, useCraftUi } from '../craft/store';
+import { useCraftViewer } from '../craft/useCraftViewer';
 import './ViewerPanel.css';
 
 const SAMPLE_URL = './models/sample.glb';
@@ -67,6 +69,11 @@ export default function ViewerPanel() {
   const show = useCallback((loaded: LoadedModel) => {
     const engine = engineRef.current;
     if (!engine) return;
+    // A regular model replaces any Craft model.
+    useCraftStore.getState().clear();
+    useCraftUi.getState().setPreview(false);
+    engine.setHighlight(null);
+    engine.setGizmo(null);
     engine.setModel(loaded.object, loaded.bytes);
     setStats(engine.getStats());
     setModelName(loaded.name);
@@ -74,6 +81,15 @@ export default function ViewerPanel() {
     // Hand the new model to the low-poly pipeline (it only starts working once that step is open).
     useLowPolyStore.getState().setSource(extractSource(loaded.object));
   }, []);
+
+  // Craft models are built by their own store and shown here.
+  const craft = useCraftViewer(engineRef, {
+    onShown: ({ stats: craftStats, name }) => {
+      setStats(craftStats);
+      setModelName(name);
+      setBadge('Craft');
+    },
+  });
 
   const invalidateLoads = useCallback(() => {
     loadToken.current++;
@@ -249,6 +265,8 @@ export default function ViewerPanel() {
         onDragOver={(e) => e.preventDefault()}
         onDragLeave={onDragLeave}
         onDrop={onDrop}
+        onPointerDown={craft.onPointerDown}
+        onPointerUp={craft.onPointerUp}
       >
         <div ref={stageRef} className="viewer__canvas" />
         <Confetti burst={burst} />

@@ -4,6 +4,8 @@ import { Button, IconButton, Modal, Panel, Tabs, useToast } from '../design/comp
 import { InputStep } from './InputStep';
 import { GeneratePanel } from '../pipeline/providers/GeneratePanel';
 import { LowPolyPanel } from '../pipeline/lowpoly/LowPolyPanel';
+import { CraftDetailPanel } from '../craft/ui/CraftDetailPanel';
+import { useCraftStore } from '../craft/store';
 import { StepTracker } from './StepTracker';
 import { STEPS } from './steps';
 import { ThemeToggle } from './ThemeToggle';
@@ -19,6 +21,7 @@ export function Workspace() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const toast = useToast();
+  const craftSpec = useCraftStore((s) => s.spec);
 
   const current = STEPS.find((s) => s.id === step) ?? STEPS[0];
 
@@ -47,13 +50,24 @@ export function Workspace() {
           <StepTracker current={step} onSelect={setStep} />
           {step === 'input' ? (
             <InputStep />
+          ) : step === 'generate' && craftSpec ? (
+            <Panel title="Generate" accent="orange">
+              <p>Your Craft model is already built and rigged, so there is nothing to generate.</p>
+              <Button variant="secondary" onClick={() => setStep('lowpoly')}>
+                Go to Low poly
+              </Button>
+            </Panel>
           ) : step === 'generate' ? (
             <GeneratePanel
               onGoToInput={() => setStep('input')}
               onGoToLowPoly={() => setStep('lowpoly')}
             />
           ) : step === 'lowpoly' ? (
-            <LowPolyPanel />
+            craftSpec ? (
+              <CraftDetailPanel />
+            ) : (
+              <LowPolyPanel />
+            )
           ) : (
             <Panel title={current.title} accent={current.color} className="step-detail">
               <p>{current.hint}</p>
@@ -85,7 +99,14 @@ export function Workspace() {
                 tabs={TOOL_TABS.map((label) => ({
                   id: label.toLowerCase().replace(' ', '-'),
                   label,
-                  content: <p className="muted">{label} tools will appear here.</p>,
+                  content:
+                    label === 'Rig' && craftSpec ? (
+                      <p className="muted">
+                        Already rigged. Move the joints in Craft, on the Edit tab, under Bones.
+                      </p>
+                    ) : (
+                      <p className="muted">{label} tools will appear here.</p>
+                    ),
                 }))}
               />
             </Panel>

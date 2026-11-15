@@ -1,0 +1,187 @@
+{
+  "version": 1,
+  "name": "Orange cat",
+  "bodyType": "quadruped",
+  "palette": {
+    "fur": "#FF9F43",
+    "stripe": "#E07A1F",
+    "cream": "#FFF3E0",
+    "pink": "#FF8FB1",
+    "ink": "#22184A"
+  },
+  "bones": [
+    { "name": "root", "parent": null, "head": [0, 0, 0] },
+    { "name": "hips", "parent": "root", "head": [0, 1.25, -0.6] },
+    { "name": "spine", "parent": "hips", "head": [0, 1.3, 0] },
+    { "name": "chest", "parent": "spine", "head": [0, 1.3, 0.7] },
+    { "name": "neck", "parent": "chest", "head": [0, 1.6, 1.0] },
+    { "name": "head", "parent": "neck", "head": [0, 1.9, 1.15] },
+    { "name": "leg_front_l", "parent": "chest", "head": [0.42, 1.05, 0.72], "mirror": "x" },
+    { "name": "leg_back_l", "parent": "hips", "head": [0.46, 1.05, -0.7], "mirror": "x" }
+  ],
+  "parts": [
+    {
+      "id": "body",
+      "shape": "sphere",
+      "radii": [0.8, 0.75, 1.25],
+      "position": [0, 1.25, 0],
+      "color": "fur",
+      "bone": "spine"
+    },
+    {
+      "id": "chest",
+      "shape": "sphere",
+      "radii": [0.42, 0.48, 0.32],
+      "position": [0, 1.2, 1.0],
+      "color": "cream",
+      "bone": "chest"
+    },
+    {
+      "id": "stripe_1",
+      "shape": "sphere",
+      "radii": [0.55, 0.1, 0.14],
+      "position": [0, 1.91, -0.5],
+      "color": "stripe",
+      "bone": "hips"
+    },
+    {
+      "id": "stripe_2",
+      "shape": "sphere",
+      "radii": [0.55, 0.1, 0.14],
+      "position": [0, 1.97, 0],
+      "color": "stripe",
+      "bone": "spine"
+    },
+    {
+      "id": "stripe_3",
+      "shape": "sphere",
+      "radii": [0.55, 0.1, 0.14],
+      "position": [0, 1.91, 0.5],
+      "color": "stripe",
+      "bone": "chest"
+    },
+    {
+      "id": "haunch_l",
+      "shape": "sphere",
+      "radii": [0.32, 0.52, 0.52],
+      "position": [0.52, 0.95, -0.7],
+      "color": "fur",
+      "bone": "leg_back_l",
+      "mirror": "x"
+    },
+    {
+      "id": "leg_front_l",
+      "shape": "cylinder",
+      "radiusTop": 0.17,
+      "radiusBottom": 0.15,
+      "height": 0.95,
+      "position": [0.42, 0.62, 0.72],
+      "color": "fur",
+      "bone": "leg_front_l",
+      "mirror": "x"
+    },
+    {
+      "id": "leg_back_l",
+      "shape": "cylinder",
+      "radiusTop": 0.17,
+      "radiusBottom": 0.15,
+      "height": 0.95,
+      "position": [0.46, 0.62, -0.7],
+      "color": "fur",
+      "bone": "leg_back_l",
+      "mirror": "x"
+    },
+    {
+      "id": "paw_front_l",
+      "shape": "sphere",
+      "radii": [0.2, 0.12, 0.27],
+      "position": [0.42, 0.12, 0.78],
+      "color": "cream",
+      "bone": "leg_front_l",
+      "mirror": "x"
+    },
+    {
+      "id": "paw_back_l",
+      "shape": "sphere",
+      "radii": [0.2, 0.12, 0.27],
+      "position": [0.46, 0.12, -0.64],
+      "color": "cream",
+      "bone": "leg_back_l",
+      "mirror": "x"
+    },
+    {
+      "id": "head",
+      "shape": "sphere",
+      "radii": [0.8, 0.7, 0.7],
+      "position": [0, 2.1, 1.2],
+      "color": "fur",
+      "bone": "head"
+    },
+    {
+      "id": "muzzle",
+      "shape": "sphere",
+      "radii": [0.27, 0.19, 0.2],
+      "position": [0, 1.93, 1.8],
+      "color": "cream",
+      "bone": "head"
+    },
+    {
+      "id": "nose",
+      "shape": "sphere",
+      "radii": [0.09, 0.06, 0.06],
+      "position": [0, 2.02, 1.97],
+      "color": "pink",
+      "bone": "head"
+    },
+    {
+      "id": "eye_l",
+      "shape": "sphere",
+      "radii": [0.1, 0.14, 0.07],
+      "position": [0.3, 2.22, 1.8],
+      "color": "ink",
+      "bone": "head",
+      "mirror": "x"
+    },
+    {
+      "id": "ear_l",
+      "shape": "cone",
+      "radius": 0.3,
+      "height": 0.6,
+      "sides": 4,
+      "position": [0.46, 2.78, 1.1],
+      "rotation": [0, 0, -14],
+      "color": "fur",
+      "bone": "head",
+      "mirror": "x"
+    },
+    {
+      "id": "ear_inner_l",
+      "shape": "cone",
+      "radius": 0.18,
+      "height": 0.42,
+      "sides": 4,
+      "position": [0.46, 2.74, 1.18],
+      "rotation": [0, 0, -14],
+      "color": "pink",
+      "bone": "head",
+      "mirror": "x"
+    },
+    {
+      "id": "tail",
+      "shape": "tube",
+      "points": [
+        [0, 1.45, -1.1],
+        [0, 1.75, -1.6],
+        [0, 2.3, -1.85],
+        [0, 2.85, -1.75],
+        [0, 3.2, -1.5]
+      ],
+      "radiusStart": 0.16,
+      "radiusEnd": 0.1,
+      "color": "fur",
+      "bone": "hips",
+      "boneChain": "tail",
+      "chainLength": 4
+    }
+  ]
+}

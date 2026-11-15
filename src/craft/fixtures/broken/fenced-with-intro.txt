@@ -1,0 +1,17 @@
+Sure! Here is your penguin. I made it chunky and cute.
+
+```json
+{
+  // a tiny model
+  "version": 1,
+  "name": 'Mini',
+  "bodyType": "object",
+  "palette": { "a": "#FF0000", },
+  "bones": [ { "name": "root", "parent": null, "head": [0, 0, 0] }, ],
+  "parts": [
+    { "id": "ball", "shape": "sphere", "radii": [1, 1, 1], "position": [0, 1, 0], "color": "a", "bone": "root", },
+  ],
+}
+```
+
+Let me know if you want any changes!

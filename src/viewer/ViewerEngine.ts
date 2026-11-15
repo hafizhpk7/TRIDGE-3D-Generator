@@ -9,16 +9,24 @@ import {
   HemisphereLight,
   Material,
   Mesh,
+  MeshBasicMaterial,
   MeshStandardMaterial,
   Object3D,
   PCFShadowMap,
   PerspectiveCamera,
   PointLight,
+  Raycaster,
+  SkinnedMesh,
   Scene,
   ShadowMaterial,
+  Vector2,
   Vector3,
+  BufferAttribute,
+  BufferGeometry,
   WebGLRenderer,
 } from 'three';
+import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
+import type { CraftObjectInfo } from '../craft/builder/object';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
   computeStats,
@@ -49,6 +57,14 @@ export class ViewerEngine {
   private viewMode: 'original' | 'lowpoly' | 'split' = 'original';
   private splitRatio = 0.5;
   private size = { w: 1, h: 1 };
+  private updater: ((seconds: number, craft: CraftObjectInfo | null) => void) | null = null;
+  private readonly startedAt = performance.now();
+  private gizmo: TransformControls | null = null;
+  private readonly gizmoProxy = new Object3D();
+  private gizmoListener: GizmoListener | null = null;
+  private gizmoDragging = false;
+  private highlight: Mesh | null = null;
+  private readonly raycaster = new Raycaster();
   private stats: ModelStats | null = null;
   private wireframe = false;
   private flat = false;
@@ -171,6 +187,10 @@ export class ViewerEngine {
   }
 
   private renderFrame() {
+    if (this.updater) {
+      const craft = (this.modelObject?.userData.craft as CraftObjectInfo | undefined) ?? null;
+      this.updater((performance.now() - this.startedAt) / 1000, craft);
+    }
     const original = this.model;
     const processed = this.processed;
     if (!(this.viewMode === 'split' && original && processed)) {
@@ -234,18 +254,24 @@ export class ViewerEngine {
   // ---- model -------------------------------------------------------------
 
   /** Replace the current model. The previous one is disposed first. */
-  setModel(object: Object3D, bytes: number) {
+  setModel(object: Object3D, bytes: number, opts: { keepView?: boolean } = {}) {
+    // For edits to the same model, keep the placement and camera so nothing jumps around.
+    const keep =
+      opts.keepView && this.modelObject
+        ? { scale: this.modelScale, position: this.modelObject.position.clone() }
+        : null;
     this.clearModel();
 
     // Center on the pedestal, rest on its top, and normalize the size.
     const box = new Box3().setFromObject(object);
     const size = box.getSize(new Vector3());
     const center = box.getCenter(new Vector3());
-    const scale = normalizeScale(Math.max(size.x, size.y, size.z), MODEL_SIZE);
+    const scale = keep ? keep.scale : normalizeScale(Math.max(size.x, size.y, size.z), MODEL_SIZE);
 
     const wrapper = new Group();
     wrapper.add(object);
-    object.position.set(-center.x, -box.min.y, -center.z);
+    if (keep) object.position.copy(keep.position);
+    else object.position.set(-center.x, -box.min.y, -center.z);
     wrapper.scale.setScalar(scale);
 
     wrapper.traverse((o) => {
@@ -262,6 +288,7 @@ export class ViewerEngine {
     this.stats = computeStats(object, bytes);
     this.applyMaterialModes();
 
+    if (keep) return;
     const height = size.y * scale;
     const radius = Math.max(1.5, height / 2 + 0.3);
     this.setHomeView(radius, height / 2);
@@ -269,6 +296,7 @@ export class ViewerEngine {
   }
 
   clearModel() {
+    this.highlight = null; // disposed together with the model it was attached to
     this.setProcessed(null);
     if (!this.model) return;
     this.modelHolder.remove(this.model);
@@ -341,6 +369,131 @@ export class ViewerEngine {
     return this.stats;
   }
 
+  // ---- craft editing: pose preview, picking, highlight, gizmo -----------------------------
+
+  /** Run `fn` every frame (for pose previews). Pass null to stop and return the rig to its rest pose. */
+  setUpdater(fn: ((seconds: number, craft: CraftObjectInfo | null) => void) | null) {
+    this.updater = fn;
+    if (!fn) {
+      const craft = this.modelObject?.userData.craft as CraftObjectInfo | undefined;
+      craft?.skeleton.bones.forEach((b) => b.rotation.set(0, 0, 0));
+    }
+  }
+
+  /** Index of the triangle under a screen position, or null. */
+  pickFace(clientX: number, clientY: number): number | null {
+    if (!this.model) return null;
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    const ndc = new Vector2(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -(((clientY - rect.top) / rect.height) * 2 - 1),
+    );
+    this.raycaster.setFromCamera(ndc, this.camera);
+    const hits = this.raycaster.intersectObject(this.model, true);
+    const hit = hits.find((h) => h.object instanceof SkinnedMesh && h.faceIndex != null);
+    return hit?.faceIndex ?? null;
+  }
+
+  /** Outline the given triangles (9 numbers each, model space). Pass null to clear. */
+  setHighlight(positions: Float32Array | null) {
+    if (this.highlight) {
+      this.highlight.parent?.remove(this.highlight);
+      this.highlight.geometry.dispose();
+      (this.highlight.material as Material).dispose();
+      this.highlight = null;
+    }
+    if (!positions || !this.modelObject) return;
+    const geometry = new BufferGeometry();
+    geometry.setAttribute('position', new BufferAttribute(positions, 3));
+    const mesh = new Mesh(
+      geometry,
+      new MeshBasicMaterial({
+        color: 0xffd43b,
+        wireframe: true,
+        depthTest: false,
+        transparent: true,
+        opacity: 0.95,
+      }),
+    );
+    mesh.renderOrder = 10;
+    mesh.frustumCulled = false;
+    this.modelObject.add(mesh);
+    this.highlight = mesh;
+  }
+
+  onGizmo(listener: GizmoListener | null) {
+    this.gizmoListener = listener;
+  }
+
+  /** Show move/rotate/scale handles at a model-space transform. Pass null to hide them. */
+  setGizmo(
+    opts: {
+      position: [number, number, number];
+      rotation: [number, number, number];
+      mode: 'translate' | 'rotate' | 'scale';
+      snap: boolean;
+    } | null,
+  ) {
+    if (!opts) {
+      if (this.gizmoDragging) return;
+      this.gizmo?.detach();
+      return;
+    }
+    if (!this.modelObject || this.gizmoDragging) return;
+    if (!this.gizmo) this.createGizmo();
+    const gizmo = this.gizmo!;
+    this.modelObject.updateWorldMatrix(true, false);
+    this.gizmoProxy.position.copy(this.modelObject.localToWorld(new Vector3(...opts.position)));
+    const k = Math.PI / 180;
+    this.gizmoProxy.rotation.set(
+      opts.rotation[0] * k,
+      opts.rotation[1] * k,
+      opts.rotation[2] * k,
+      'XYZ',
+    );
+    this.gizmoProxy.scale.set(1, 1, 1);
+    gizmo.setMode(opts.mode);
+    gizmo.setTranslationSnap(opts.snap ? 0.05 * this.modelScale : null);
+    gizmo.setRotationSnap(opts.snap ? 15 * k : null);
+    gizmo.setScaleSnap(opts.snap ? 0.05 : null);
+    gizmo.attach(this.gizmoProxy);
+  }
+
+  private createGizmo() {
+    const gizmo = new TransformControls(this.camera, this.renderer.domElement);
+    gizmo.setSize(0.8);
+    this.scene.add(this.gizmoProxy);
+    this.scene.add(gizmo.getHelper());
+    const emit = (phase: 'start' | 'change' | 'end') => {
+      if (!this.modelObject || !this.gizmoListener) return;
+      this.modelObject.updateWorldMatrix(true, false);
+      const local = this.modelObject.worldToLocal(this.gizmoProxy.position.clone());
+      const r = this.gizmoProxy.rotation;
+      const d = 180 / Math.PI;
+      this.gizmoListener(
+        {
+          position: [local.x, local.y, local.z],
+          rotation: [r.x * d, r.y * d, r.z * d],
+          scale: [this.gizmoProxy.scale.x, this.gizmoProxy.scale.y, this.gizmoProxy.scale.z],
+        },
+        phase,
+      );
+    };
+    gizmo.addEventListener('dragging-changed', (e) => {
+      const dragging = Boolean((e as unknown as { value: boolean }).value);
+      this.gizmoDragging = dragging;
+      this.controls.enabled = !dragging;
+      emit(dragging ? 'start' : 'end');
+    });
+    gizmo.addEventListener('objectChange', () => emit('change'));
+    this.gizmo = gizmo;
+  }
+
+  /** True while a handle is being dragged or hovered, so clicks on the model should be ignored. */
+  isGizmoBusy() {
+    return this.gizmoDragging || Boolean(this.gizmo?.axis);
+  }
+
   // ---- display modes -----------------------------------------------------
 
   setWireframe(on: boolean) {
@@ -382,6 +535,7 @@ export class ViewerEngine {
 
   dispose() {
     this.disposed = true;
+    this.gizmo?.dispose();
     this.stop();
     this.resizeObserver.disconnect();
     this.controls.dispose();
@@ -398,3 +552,12 @@ export class ViewerEngine {
     this.renderer.domElement.remove();
   }
 }
+
+export type GizmoListener = (
+  t: {
+    position: [number, number, number];
+    rotation: [number, number, number];
+    scale: [number, number, number];
+  },
+  phase: 'start' | 'change' | 'end',
+) => void;

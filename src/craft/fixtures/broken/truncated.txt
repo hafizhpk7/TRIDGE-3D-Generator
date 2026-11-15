@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "name": "Cut off",
+  "bodyType": "object",
+  "palette": { "a": "#FF0000" },
+  "bones": [ { "name": "root", "parent": null, "head": [0, 0, 0] } ],
+  "parts": [
+    { "id": "ball", "shape": "sphere", "radii": [1, 1, 1], "position": [0, 1, 0], "color": "a", "bone": "root" },
+    { "id": "hat", "shape": "cone", "radius": 0.5, "height":

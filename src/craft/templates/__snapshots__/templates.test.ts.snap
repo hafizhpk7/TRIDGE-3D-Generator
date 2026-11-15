@@ -1,0 +1,57 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`template bird > keeps part and triangle counts stable at detail 5 (snapshot) 1`] = `
+{
+  "parts": 16,
+  "triangles": 774,
+}
+`;
+
+exports[`template bunny > keeps part and triangle counts stable at detail 5 (snapshot) 1`] = `
+{
+  "parts": 22,
+  "triangles": 1232,
+}
+`;
+
+exports[`template car > keeps part and triangle counts stable at detail 5 (snapshot) 1`] = `
+{
+  "parts": 11,
+  "triangles": 740,
+}
+`;
+
+exports[`template cat > keeps part and triangle counts stable at detail 5 (snapshot) 1`] = `
+{
+  "parts": 25,
+  "triangles": 1334,
+}
+`;
+
+exports[`template dog > keeps part and triangle counts stable at detail 5 (snapshot) 1`] = `
+{
+  "parts": 20,
+  "triangles": 1246,
+}
+`;
+
+exports[`template fish > keeps part and triangle counts stable at detail 5 (snapshot) 1`] = `
+{
+  "parts": 11,
+  "triangles": 596,
+}
+`;
+
+exports[`template human > keeps part and triangle counts stable at detail 5 (snapshot) 1`] = `
+{
+  "parts": 15,
+  "triangles": 812,
+}
+`;
+
+exports[`template robot > keeps part and triangle counts stable at detail 5 (snapshot) 1`] = `
+{
+  "parts": 15,
+  "triangles": 1096,
+}
+`;
