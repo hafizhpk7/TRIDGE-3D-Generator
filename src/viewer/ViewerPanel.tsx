@@ -17,6 +17,7 @@ import { Confetti } from './Confetti';
 import { useCraftStore, useCraftUi } from '../craft/store';
 import { registerEngine } from '../rig/bridge';
 import { useRigStore } from '../rig/store';
+import { attachAnimation, useAnimStore } from '../animate/store';
 import { useCraftViewer } from '../craft/useCraftViewer';
 import './ViewerPanel.css';
 
@@ -75,6 +76,7 @@ export default function ViewerPanel() {
     useCraftStore.getState().clear();
     useCraftUi.getState().setPreview(false);
     useRigStore.getState().reset();
+    useAnimStore.getState().reset();
     engine.setHighlight(null);
     engine.setGizmo(null);
     engine.setModel(loaded.object, loaded.bytes);
@@ -151,6 +153,7 @@ export default function ViewerPanel() {
     }
     engineRef.current = engine;
     registerEngine(engine);
+    const detachAnimation = attachAnimation(engine);
     engine.setAutoRotate(!reducedMotion);
     engine.start();
     // Deferred so React finishes mounting first (and StrictMode's first pass is cancelled).
@@ -163,6 +166,7 @@ export default function ViewerPanel() {
     return () => {
       window.clearTimeout(startTimer);
       invalidateLoads();
+      detachAnimation();
       registerEngine(null);
       engine.dispose();
       engineRef.current = null;

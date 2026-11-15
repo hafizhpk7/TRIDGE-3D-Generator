@@ -7,16 +7,19 @@ import {
   Skeleton,
   SkinnedMesh,
 } from 'three';
+import type { BodyType } from '../spec/types';
 import type { BuiltCraft, PartRange } from './build';
 
 export interface CraftObjectInfo {
+  /** Body type of the spec, which decides which animations apply. */
+  bodyType?: BodyType;
   ranges: PartRange[];
   mesh: SkinnedMesh;
   skeleton: Skeleton;
 }
 
 /** Turn built arrays into a rigged SkinnedMesh with one flat-shaded, vertex-colored material. */
-export function createCraftObject(built: BuiltCraft, name: string): Group {
+export function createCraftObject(built: BuiltCraft, name: string, bodyType?: BodyType): Group {
   const geometry = new BufferGeometry();
   geometry.setAttribute('position', new BufferAttribute(built.positions, 3));
   geometry.setAttribute('normal', new BufferAttribute(built.normals, 3));
@@ -69,6 +72,11 @@ export function createCraftObject(built: BuiltCraft, name: string): Group {
   const skeleton = new Skeleton(bones);
   mesh.bind(skeleton);
 
-  group.userData.craft = { ranges: built.ranges, mesh, skeleton } satisfies CraftObjectInfo;
+  group.userData.craft = {
+    bodyType,
+    ranges: built.ranges,
+    mesh,
+    skeleton,
+  } satisfies CraftObjectInfo;
   return group;
 }

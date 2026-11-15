@@ -54,7 +54,7 @@ export function useCraftViewer(
     const engine = engineRef.current;
     const currentSpec = useCraftStore.getState().spec;
     if (!engine || !built || !currentSpec) return;
-    const group = createCraftObject(built, currentSpec.name);
+    const group = createCraftObject(built, currentSpec.name, currentSpec.bodyType);
     // Same model, edited: keep the camera and placement.
     engine.setModel(group, 0, { keepView: lastEpoch.current === builtEpoch });
     lastEpoch.current = builtEpoch;

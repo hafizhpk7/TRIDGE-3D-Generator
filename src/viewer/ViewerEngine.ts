@@ -31,6 +31,8 @@ import {
 } from 'three';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import type { CraftObjectInfo } from '../craft/builder/object';
+import type { AnimTarget } from '../animate/types';
+import type { RigInfo } from '../rig/build';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
   computeStats,
@@ -70,6 +72,8 @@ export class ViewerEngine {
   private highlight: Mesh | null = null;
   private rigged: Object3D | null = null;
   private motion: ((seconds: number) => Transform) | null = null;
+  private tickers = new Set<(dt: number) => void>();
+  private lastFrameAt = performance.now();
   private markerGroup: Group | null = null;
   private markerMeshes = new Map<string, Mesh>();
   private markerLines: LineSegments | null = null;
@@ -204,6 +208,10 @@ export class ViewerEngine {
   }
 
   private renderFrame() {
+    const now = performance.now();
+    const dt = Math.min(0.1, (now - this.lastFrameAt) / 1000);
+    this.lastFrameAt = now;
+    for (const tick of this.tickers) tick(dt);
     if (this.motion) {
       const t = this.motion((performance.now() - this.startedAt) / 1000);
       this.modelHolder.position.set(...t.position);
@@ -556,6 +564,51 @@ export class ViewerEngine {
       this.applyMaterialModes();
     }
     this.applyVisibility();
+  }
+
+  /** Call `fn` before every frame with the seconds since the last one. Returns a function that stops it. */
+  addTicker(fn: (dt: number) => void): () => void {
+    this.tickers.add(fn);
+    return () => this.tickers.delete(fn);
+  }
+
+  /** The skeleton animations should drive: a rig made here, or a Craft model's own. Null when there is none. */
+  getAnimTarget(): AnimTarget | null {
+    const rigged = this.getRiggedObject();
+    const rig = rigged?.userData.rig as RigInfo | undefined;
+    if (rigged && rig) {
+      return {
+        root: rigged,
+        skeleton: rig.skeleton,
+        bodyType: rig.bodyType,
+        frame: { front: rig.frame.front, left: rig.frame.left },
+        meshes: rig.meshes,
+      };
+    }
+    const craft = this.modelObject?.userData.craft as CraftObjectInfo | undefined;
+    if (this.modelObject && craft?.bodyType) {
+      return {
+        root: this.modelObject,
+        skeleton: craft.skeleton,
+        bodyType: craft.bodyType,
+        frame: { front: [0, 0, 1], left: [1, 0, 0] },
+        meshes: [craft.mesh],
+      };
+    }
+    return null;
+  }
+
+  /** Move the whole model (used by animations that need no skeleton). Null puts it back. */
+  setHolderTransform(t: Transform | null) {
+    if (!t) {
+      this.modelHolder.position.set(0, 0, 0);
+      this.modelHolder.rotation.set(0, 0, 0);
+      this.modelHolder.scale.set(1, 1, 1);
+      return;
+    }
+    this.modelHolder.position.set(...t.position);
+    this.modelHolder.rotation.set(t.rotation[0], t.rotation[1], t.rotation[2], 'XYZ');
+    this.modelHolder.scale.set(...t.scale);
   }
 
   getRiggedObject(): Object3D | null {

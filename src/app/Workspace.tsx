@@ -7,6 +7,7 @@ import { LowPolyPanel } from '../pipeline/lowpoly/LowPolyPanel';
 import { CraftDetailPanel } from '../craft/ui/CraftDetailPanel';
 import { useCraftStore } from '../craft/store';
 import { RigPanel } from '../rig/RigPanel';
+import { AnimatePanel } from '../animate/AnimatePanel';
 import { StepTracker } from './StepTracker';
 import { STEPS } from './steps';
 import { ThemeToggle } from './ThemeToggle';
@@ -63,6 +64,8 @@ export function Workspace() {
               onGoToInput={() => setStep('input')}
               onGoToLowPoly={() => setStep('lowpoly')}
             />
+          ) : step === 'animate' ? (
+            <AnimatePanel />
           ) : step === 'lowpoly' ? (
             craftSpec ? (
               <CraftDetailPanel />
@@ -103,6 +106,8 @@ export function Workspace() {
                   content:
                     label === 'Rig' ? (
                       <RigPanel craft={Boolean(craftSpec)} />
+                    ) : label === 'Animate' ? (
+                      <p className="muted">Open step 4, Animate, in the list on the left.</p>
                     ) : (
                       <p className="muted">{label} tools will appear here.</p>
                     ),
