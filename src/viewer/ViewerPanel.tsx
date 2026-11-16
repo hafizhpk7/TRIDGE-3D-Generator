@@ -18,6 +18,7 @@ import { useCraftStore, useCraftUi } from '../craft/store';
 import { registerEngine } from '../rig/bridge';
 import { useRigStore } from '../rig/store';
 import { attachAnimation, useAnimStore } from '../animate/store';
+import { useExportStore } from '../export/store';
 import { useCraftViewer } from '../craft/useCraftViewer';
 import './ViewerPanel.css';
 
@@ -82,6 +83,7 @@ export default function ViewerPanel() {
     engine.setModel(loaded.object, loaded.bytes);
     setStats(engine.getStats());
     setModelName(loaded.name);
+    useExportStore.getState().setName(loaded.name);
     setBadge(loaded.badge ?? '');
     // Hand the new model to the low-poly pipeline (it only starts working once that step is open).
     useLowPolyStore.getState().setSource(extractSource(loaded.object));
@@ -92,6 +94,7 @@ export default function ViewerPanel() {
     onShown: ({ stats: craftStats, name }) => {
       setStats(craftStats);
       setModelName(name);
+      useExportStore.getState().setName(name);
       setBadge('Craft');
     },
   });

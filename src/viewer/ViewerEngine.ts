@@ -55,6 +55,10 @@ export class ViewerEngine {
   readonly controls: OrbitControls;
 
   private readonly modelHolder = new Group();
+  /** The coloured stand the model sits on. Hidden in transparent captures. */
+  private readonly pedestal = new Group();
+  /** Set while an export is drawing: bigger pixels, and no on-screen helpers. */
+  private capture: { transparent: boolean; hidden: { o: Object3D; was: boolean }[] } | null = null;
   private model: Object3D | null = null;
   /** The loaded object inside `model`, and the scale applied to its wrapper. */
   private modelObject: Object3D | null = null;
@@ -159,7 +163,8 @@ export class ViewerEngine {
     shadow.position.y = 0.002;
     shadow.receiveShadow = true;
 
-    this.scene.add(top, base, shadow);
+    this.pedestal.add(top, base);
+    this.scene.add(this.pedestal, shadow);
   }
 
   private buildLights() {
@@ -224,7 +229,7 @@ export class ViewerEngine {
     }
     const original = this.model;
     const processed = this.processed;
-    if (!(this.viewMode === 'split' && original && processed && !this.rigged)) {
+    if (!(this.viewMode === 'split' && original && processed && !this.rigged) || this.capture) {
       this.renderer.render(this.scene, this.camera);
       return;
     }
@@ -280,6 +285,117 @@ export class ViewerEngine {
 
   setAutoRotate(on: boolean) {
     this.controls.autoRotate = on;
+  }
+
+  // ---- export: pictures, video frames and what to put in a file -------------------------------
+
+  /** Draw one frame right now. The page loop does this on its own; recording and tests need it on demand. */
+  renderNow() {
+    this.renderFrame();
+  }
+
+  /** The page's own surface color, used as the background of captures that are not transparent. */
+  private backdropColor(): Color {
+    const css = getComputedStyle(this.container).getPropertyValue('--surface').trim();
+    try {
+      return new Color(css || '#ffffff');
+    } catch {
+      return new Color('#ffffff');
+    }
+  }
+
+  /**
+   * Get ready to capture frames: draw at up to `maxSide` pixels on the long side (the page keeps its size), hide
+   * the stand when transparent, hide handles and markers, and show only the low-poly side of a split view.
+   * Call endCapture() when done.
+   */
+  beginCapture(opts: { maxSide?: number; transparent: boolean }) {
+    this.endCapture();
+    const { w, h } = this.size;
+    const wanted = opts.maxSide ? opts.maxSide / Math.max(w, h) : this.renderer.getPixelRatio();
+    this.renderer.setPixelRatio(Math.min(8, Math.max(0.25, wanted)));
+    this.renderer.setSize(w, h, false);
+    const candidates: (Object3D | null | undefined)[] = [
+      this.gizmo?.getHelper(),
+      this.markerGroup,
+      this.highlight,
+    ];
+    const hidden = candidates
+      .filter((o): o is Object3D => Boolean(o))
+      .map((o) => ({ o, was: o.visible }));
+    for (const { o } of hidden) o.visible = false;
+    this.capture = { transparent: opts.transparent, hidden };
+    if (opts.transparent) {
+      this.pedestal.visible = false;
+      this.renderer.setClearColor(0x000000, 0);
+    } else {
+      this.renderer.setClearColor(this.backdropColor(), 1);
+    }
+    if (this.viewMode === 'split' && this.model && this.processed && !this.rigged) {
+      this.model.visible = false;
+      this.processed.visible = true;
+    }
+  }
+
+  endCapture() {
+    if (!this.capture) return;
+    for (const { o, was } of this.capture.hidden) o.visible = was;
+    this.capture = null;
+    this.pedestal.visible = true;
+    this.renderer.setClearColor(0x000000, 0);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.resize();
+    this.applyVisibility();
+  }
+
+  /** A PNG of the current view. */
+  async snapshotPng(opts: { maxSide?: number; transparent: boolean }): Promise<Blob> {
+    this.beginCapture(opts);
+    try {
+      this.renderFrame();
+      const canvas = this.renderer.domElement;
+      return await new Promise<Blob>((resolve, reject) =>
+        canvas.toBlob(
+          (b) => (b ? resolve(b) : reject(new Error('The picture could not be made.'))),
+          'image/png',
+        ),
+      );
+    } finally {
+      this.endCapture();
+    }
+  }
+
+  /** Swing the camera around the model by `angle` radians. */
+  orbitBy(angle: number) {
+    const off = this.camera.position.clone().sub(this.controls.target);
+    off.applyAxisAngle(new Vector3(0, 1, 0), angle);
+    this.camera.position.copy(off.add(this.controls.target));
+    this.controls.update();
+  }
+
+  /**
+   * What an export should contain: the model that is showing, in its own units, plus how the viewer scaled it.
+   * Rigged copies win, then the low-poly result when it is on screen, then the original.
+   */
+  getExportSource(): {
+    root: Object3D;
+    kind: 'rigged' | 'lowpoly' | 'original';
+    /** Scene units per model unit. */
+    scale: number;
+  } | null {
+    if (!this.modelObject) return null;
+    const rigged = this.getRiggedObject();
+    if (rigged) return { root: rigged, kind: 'rigged', scale: this.modelScale };
+    if (this.processed && this.viewMode !== 'original') {
+      const inner = this.processed.children[0];
+      if (inner) return { root: inner, kind: 'lowpoly', scale: this.modelScale };
+    }
+    return { root: this.modelObject, kind: 'original', scale: this.modelScale };
+  }
+
+  /** Pixel size of the viewer. */
+  getViewSize() {
+    return { ...this.size };
   }
 
   // ---- model -------------------------------------------------------------
@@ -458,6 +574,7 @@ export class ViewerEngine {
     );
     mesh.renderOrder = 10;
     mesh.frustumCulled = false;
+    mesh.userData.helper = true; // never part of an export
     this.modelObject.add(mesh);
     this.highlight = mesh;
   }

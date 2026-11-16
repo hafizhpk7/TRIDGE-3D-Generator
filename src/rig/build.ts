@@ -116,7 +116,14 @@ export function buildRiggedObject(
     meshes.push(mesh);
   });
 
-  group.userData.rig = { skeleton: skel, bodyType, frame, meshes } satisfies RigInfo;
+  const info = { skeleton: skel, bodyType, frame, meshes } satisfies RigInfo;
+  // Not enumerable, so cloning or exporting the object never tries to serialize the skeleton.
+  Object.defineProperty(group.userData, 'rig', {
+    value: info,
+    enumerable: false,
+    writable: true,
+    configurable: true,
+  });
   return group;
 }
 

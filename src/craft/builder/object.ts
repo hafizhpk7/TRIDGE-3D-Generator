@@ -72,11 +72,18 @@ export function createCraftObject(built: BuiltCraft, name: string, bodyType?: Bo
   const skeleton = new Skeleton(bones);
   mesh.bind(skeleton);
 
-  group.userData.craft = {
+  const info = {
     bodyType,
     ranges: built.ranges,
     mesh,
     skeleton,
   } satisfies CraftObjectInfo;
+  // Not enumerable, so cloning or exporting the object never tries to serialize the skeleton.
+  Object.defineProperty(group.userData, 'craft', {
+    value: info,
+    enumerable: false,
+    writable: true,
+    configurable: true,
+  });
   return group;
 }

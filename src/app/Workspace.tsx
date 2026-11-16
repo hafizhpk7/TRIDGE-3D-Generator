@@ -8,6 +8,7 @@ import { CraftDetailPanel } from '../craft/ui/CraftDetailPanel';
 import { useCraftStore } from '../craft/store';
 import { RigPanel } from '../rig/RigPanel';
 import { AnimatePanel } from '../animate/AnimatePanel';
+import { ExportPanel } from '../export/ExportPanel';
 import { StepTracker } from './StepTracker';
 import { STEPS } from './steps';
 import { ThemeToggle } from './ThemeToggle';
@@ -66,6 +67,8 @@ export function Workspace() {
             />
           ) : step === 'animate' ? (
             <AnimatePanel />
+          ) : step === 'export' ? (
+            <ExportPanel />
           ) : step === 'lowpoly' ? (
             craftSpec ? (
               <CraftDetailPanel />
@@ -108,6 +111,8 @@ export function Workspace() {
                       <RigPanel craft={Boolean(craftSpec)} />
                     ) : label === 'Animate' ? (
                       <p className="muted">Open step 4, Animate, in the list on the left.</p>
+                    ) : label === 'Export' ? (
+                      <p className="muted">Open step 5, Export, in the list on the left.</p>
                     ) : (
                       <p className="muted">{label} tools will appear here.</p>
                     ),
