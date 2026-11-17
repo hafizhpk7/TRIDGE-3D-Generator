@@ -37,6 +37,8 @@ const SaveStatus = lazy(() =>
   import('../projects/ProjectsModal').then((m) => ({ default: m.SaveStatus })),
 );
 
+const About = lazy(() => import('./About').then((m) => ({ default: m.About })));
+
 const TOOL_TABS = [
   { label: 'Low poly', step: 'lowpoly' },
   { label: 'Rig', step: null },
@@ -55,6 +57,7 @@ export function Workspace() {
   const [tool, setTool] = useState('low-poly');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const [tour, setTour] = useState(false);
   const toast = useToast();
 
@@ -226,13 +229,32 @@ export function Workspace() {
         </Lazy>
       )}
 
+      {aboutOpen && (
+        <Lazy label="About" fallback={null}>
+          <About open onClose={() => setAboutOpen(false)} />
+        </Lazy>
+      )}
+
       {tour && <Onboarding onClose={() => setTour(false)} />}
 
       <Modal
         open={helpOpen}
         title="Help and settings"
         onClose={() => setHelpOpen(false)}
-        footer={<Button onClick={() => setHelpOpen(false)}>Got it</Button>}
+        footer={
+          <>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setHelpOpen(false);
+                setAboutOpen(true);
+              }}
+            >
+              About and credits
+            </Button>
+            <Button onClick={() => setHelpOpen(false)}>Got it</Button>
+          </>
+        }
       >
         <h3>How it works</h3>
         <p>
