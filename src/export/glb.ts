@@ -21,8 +21,14 @@ function exportCopy(root: Object3D): Object3D {
  * Pack a model and its animation clips into a binary glTF (.glb). The skeleton is included when the model has
  * one. The live model is not touched.
  */
-export async function exportGlb(root: Object3D, clips: AnimationClip[] = []): Promise<ArrayBuffer> {
+export async function exportGlb(
+  root: Object3D,
+  clips: AnimationClip[] = [],
+  opts: { keepPlacement?: boolean } = {},
+): Promise<ArrayBuffer> {
   const copy = exportCopy(root);
+  // Saved projects keep the model's own coordinates, so a rig made on it lines up when it is opened again.
+  if (opts.keepPlacement === false) copy.position.set(0, 0, 0);
   // The skeleton's bind pose is the model's rest pose, which is what a glTF file stores.
   copy.traverse((o) => {
     if (o instanceof SkinnedMesh) o.skeleton.pose();

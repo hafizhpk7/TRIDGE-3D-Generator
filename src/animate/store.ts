@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { ViewerEngine } from '../viewer/ViewerEngine';
-import { availableAnimations } from './library';
+import { MOTIONS } from '../rig/motions';
+import { CLIP_LIBRARY, availableAnimations } from './library';
 import { friendlyReply, labelOf, parsePrompt, resolveSteps, type ParsedStep } from './parser';
 import { Sequencer, type PoseSnapshot, type SeqStep } from './player';
 import type { AnimEntry, AnimId, AnimParams } from './types';
@@ -44,6 +45,13 @@ interface AnimState {
   savePose: (name: string) => void;
   applyPose: (id: number) => void;
   deletePose: (id: number) => void;
+  /** Put back a saved timeline and poses. */
+  load: (saved: {
+    steps: SeqStep[];
+    speed: number;
+    loop: boolean;
+    poses: { name: string; pose: PoseSnapshot }[];
+  }) => void;
   /** Forget everything, for example when a different model is loaded. */
   reset: () => void;
 }
@@ -179,6 +187,25 @@ export const useAnimStore = create<AnimState>((set, get) => {
       if (p) sequencer.applyPose(p.pose);
     },
     deletePose: (id) => set({ poses: get().poses.filter((p) => p.id !== id) }),
+
+    load: (saved) => {
+      // drop any move this version has never heard of, for example from a newer project file
+      const all = new Set<string>([
+        ...Object.values(CLIP_LIBRARY).flatMap((o) => Object.keys(o)),
+        ...MOTIONS.map((m) => m.id),
+      ]);
+      const steps = saved.steps.filter((s) => all.has(s.id));
+      sequencer.speed = saved.speed;
+      sequencer.loop = saved.loop;
+      apply(steps, false);
+      set({
+        speed: saved.speed,
+        loop: saved.loop,
+        poses: saved.poses.map((p) => ({ id: poseId++, name: p.name, pose: p.pose })),
+        message: '',
+        suggestions: [],
+      });
+    },
 
     reset: () => {
       sequencer.stop();

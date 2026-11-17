@@ -51,6 +51,14 @@ interface RigState {
   setPose: (v: number) => void;
   setMotion: (m: MotionId | null) => void;
   setMotionParams: (p: { speed?: number; intensity?: number }) => void;
+  /** Put back a saved rig: place the joints where they were, and build the skeleton if it had been built. */
+  restore: (saved: {
+    bodyType: RigBodyType;
+    facing: Facing;
+    joints: Record<string, Vec3>;
+    mirror: boolean;
+    rigged: boolean;
+  }) => Promise<void>;
   /** Forget everything, for example when a different model is loaded. */
   reset: () => void;
 }
@@ -199,6 +207,13 @@ export const useRigStore = create<RigState>((set, get) => {
         ...(p.intensity !== undefined ? { motionIntensity: p.intensity } : {}),
       });
       // The running motion reads these on every frame, so nothing else to do.
+    },
+
+    restore: async (saved) => {
+      place(saved.bodyType, saved.facing);
+      if (get().status !== 'placing') return;
+      set({ joints: saved.joints, mirror: saved.mirror, markerEpoch: get().markerEpoch + 1 });
+      if (saved.rigged) await get().rig();
     },
 
     reset: () => {

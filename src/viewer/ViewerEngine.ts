@@ -393,6 +393,11 @@ export class ViewerEngine {
     return { root: this.modelObject, kind: 'original', scale: this.modelScale };
   }
 
+  /** The loaded model as it was opened, before any low-poly or rig copy. Null when nothing is loaded. */
+  getOriginalObject(): Object3D | null {
+    return this.modelObject;
+  }
+
   /** Pixel size of the viewer. */
   getViewSize() {
     return { ...this.size };

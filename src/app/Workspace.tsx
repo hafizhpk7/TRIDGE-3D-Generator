@@ -1,6 +1,8 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Button, IconButton, Modal, Panel, Tabs, useToast } from '../design/components';
+import { Button, IconButton, Modal, Panel, Tabs } from '../design/components';
+import { ProjectsModal, SaveStatus } from '../projects/ProjectsModal';
+import { startAutosave, useProjectStore } from '../projects/store';
 import { InputStep } from './InputStep';
 import { GeneratePanel } from '../pipeline/providers/GeneratePanel';
 import { LowPolyPanel } from '../pipeline/lowpoly/LowPolyPanel';
@@ -19,11 +21,14 @@ const ViewerPanel = lazy(() => import('../viewer/ViewerPanel'));
 const TOOL_TABS = ['Low poly', 'Rig', 'Animate', 'Export'];
 
 export function Workspace() {
-  const [step, setStep] = useState('input');
+  const step = useProjectStore((s) => s.step);
+  const setStep = useProjectStore((s) => s.setStep);
+  const openGallery = useProjectStore((s) => s.openGallery);
   const [tool, setTool] = useState('low-poly');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  const toast = useToast();
+
+  useEffect(() => startAutosave(), []);
   const craftSpec = useCraftStore((s) => s.spec);
 
   const current = STEPS.find((s) => s.id === step) ?? STEPS[0];
@@ -35,7 +40,8 @@ export function Workspace() {
           <img src="./tridge-logo.svg" alt="TRIDGE" height={44} />
         </Link>
         <nav className="topbar__actions" aria-label="App">
-          <Button variant="ghost" onClick={() => toast.show('Projects arrive in a later phase.')}>
+          <SaveStatus />
+          <Button variant="ghost" onClick={openGallery}>
             Projects
           </Button>
           <Link to="/playground" className="btn btn--ghost topbar__link">
@@ -122,6 +128,8 @@ export function Workspace() {
           </div>
         </aside>
       </main>
+
+      <ProjectsModal />
 
       <Modal
         open={helpOpen}

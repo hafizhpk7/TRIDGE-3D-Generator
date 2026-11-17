@@ -19,6 +19,7 @@ import { registerEngine } from '../rig/bridge';
 import { useRigStore } from '../rig/store';
 import { attachAnimation, useAnimStore } from '../animate/store';
 import { useExportStore } from '../export/store';
+import { useProjectStore } from '../projects/store';
 import { useCraftViewer } from '../craft/useCraftViewer';
 import './ViewerPanel.css';
 
@@ -84,6 +85,7 @@ export default function ViewerPanel() {
     setStats(engine.getStats());
     setModelName(loaded.name);
     useExportStore.getState().setName(loaded.name);
+    useProjectStore.getState().modelLoaded(loaded.name);
     setBadge(loaded.badge ?? '');
     // Hand the new model to the low-poly pipeline (it only starts working once that step is open).
     useLowPolyStore.getState().setSource(extractSource(loaded.object));
@@ -227,6 +229,8 @@ export default function ViewerPanel() {
           ? { object: pending.object, bytes: 0, name: pending.name, badge: pending.badge }
           : await loadModelFromBuffer(await pending.blob!.arrayBuffer(), pending.name);
         if (pending.celebrate) setBurst((n) => n + 1);
+        // a freshly generated model came from the picture in the input step
+        useProjectStore.setState({ nextWithImage: pending.celebrate });
         return loaded;
       });
     }, 0);
