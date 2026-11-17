@@ -72,3 +72,21 @@ button {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Lets keyboard users jump past the top bar. Hidden until it receives focus. */
+.skip-link {
+  position: absolute;
+  top: -80px;
+  left: 8px;
+  z-index: 300;
+  padding: 10px 16px;
+  border: var(--border);
+  border-radius: 12px;
+  background: var(--yellow);
+  color: var(--on-color);
+  font-weight: 800;
+  text-decoration: none;
+}
+.skip-link:focus {
+  top: 8px;
+}

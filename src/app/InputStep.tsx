@@ -1,8 +1,12 @@
-import { useState } from 'react';
+import { lazy, useState } from 'react';
 import { Tabs } from '../design/components';
 import { InputPanel } from '../pipeline/input/InputPanel';
 import { TextPanel } from '../pipeline/text/TextPanel';
-import { CraftStep } from '../craft/ui/CraftStep';
+import { Lazy } from './ErrorBoundary';
+
+const CraftStep = lazy(() =>
+  import('../craft/ui/CraftStep').then((m) => ({ default: m.CraftStep })),
+);
 
 /** The first step: choose how the model starts. Both panels stay mounted so work is not lost. */
 export function InputStep() {
@@ -20,7 +24,15 @@ export function InputStep() {
           label: 'From text',
           content: <TextPanel onUsePicture={() => setTab('photo')} />,
         },
-        { id: 'craft', label: 'Craft', content: <CraftStep active={tab === 'craft'} /> },
+        {
+          id: 'craft',
+          label: 'Craft',
+          content: (
+            <Lazy label="Craft">
+              <CraftStep active={tab === 'craft'} />
+            </Lazy>
+          ),
+        },
       ]}
     />
   );

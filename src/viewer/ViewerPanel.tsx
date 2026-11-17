@@ -20,6 +20,7 @@ import { useRigStore } from '../rig/store';
 import { attachAnimation, useAnimStore } from '../animate/store';
 import { useExportStore } from '../export/store';
 import { useProjectStore } from '../projects/store';
+import { playSound } from '../app/sound';
 import { useCraftViewer } from '../craft/useCraftViewer';
 import './ViewerPanel.css';
 
@@ -228,7 +229,10 @@ export default function ViewerPanel() {
         const loaded: LoadedModel = pending.object
           ? { object: pending.object, bytes: 0, name: pending.name, badge: pending.badge }
           : await loadModelFromBuffer(await pending.blob!.arrayBuffer(), pending.name);
-        if (pending.celebrate) setBurst((n) => n + 1);
+        if (pending.celebrate) {
+          setBurst((n) => n + 1);
+          playSound('done');
+        }
         // a freshly generated model came from the picture in the input step
         useProjectStore.setState({ nextWithImage: pending.celebrate });
         return loaded;
@@ -273,7 +277,7 @@ export default function ViewerPanel() {
   const bgCss = BACKGROUNDS.find((b) => b.id === bg)?.css ?? null;
 
   return (
-    <section className="viewer" aria-label="3D viewer">
+    <section className="viewer" aria-label="3D viewer" data-tour="viewer">
       <div
         className={`viewer__stage ${dragging ? 'viewer__stage--drag' : ''}`}
         style={bgCss ? { background: bgCss } : undefined}

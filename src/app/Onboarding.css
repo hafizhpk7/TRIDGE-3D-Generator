@@ -1,0 +1,55 @@
+.tour {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+}
+.tour__dim {
+  position: absolute;
+  inset: 0;
+  background: rgb(20 10 40 / 0.55);
+}
+/* The glow's huge shadow darkens everything except the highlighted area. */
+.tour__spot {
+  position: absolute;
+  border: 3px solid var(--yellow);
+  border-radius: 18px;
+  box-shadow: 0 0 0 100vmax rgb(20 10 40 / 0.55);
+  pointer-events: none;
+}
+.tour__card {
+  position: absolute;
+  width: min(340px, calc(100vw - 24px));
+  padding: var(--space-4);
+  border: var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 6px 6px 0 var(--ink);
+}
+.tour__count {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft, var(--ink));
+}
+.tour__title {
+  margin: 2px 0 var(--space-2);
+  font-size: 1.3rem;
+}
+.tour__body {
+  margin: 0 0 var(--space-3);
+}
+.tour__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+.boundary__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+}

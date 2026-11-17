@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { useAnimStore } from '../animate/store';
+import { useShell } from '../app/shellStore';
 import { useCraftStore } from '../craft/store';
 import { downloadBlob, slug } from '../export/download';
 import { DEFAULT_SETTINGS, useLowPolyStore } from '../store/lowPolyStore';
@@ -39,18 +40,13 @@ interface ProjectState {
   status: SaveStatus;
   savedAt: number | null;
   error: string;
-  step: string;
 
-  galleryOpen: boolean;
   projects: ProjectMeta[];
   usage: { usage: number; quota: number } | null;
   persisted: boolean | null;
   loading: boolean;
   message: string;
 
-  setStep: (step: string) => void;
-  openGallery: () => void;
-  closeGallery: () => void;
   /** A different model just appeared: start a new, unsaved project for it. */
   modelLoaded: (name: string) => void;
   /** Something changed that deserves saving. */
@@ -94,24 +90,12 @@ export const useProjectStore = create<ProjectState>((set, get) => {
     status: 'idle',
     savedAt: null,
     error: '',
-    step: 'input',
 
-    galleryOpen: false,
     projects: [],
     usage: null,
     persisted: null,
     loading: false,
     message: '',
-
-    setStep: (step) => {
-      set({ step });
-      get().touch();
-    },
-    openGallery: () => {
-      set({ galleryOpen: true, message: '' });
-      void get().refresh();
-    },
-    closeGallery: () => set({ galleryOpen: false }),
 
     modelLoaded: (name) => {
       if (get().restoring) return;
@@ -154,7 +138,7 @@ export const useProjectStore = create<ProjectState>((set, get) => {
           id,
           name: get().name,
           createdAt,
-          step: get().step,
+          step: useShell.getState().step,
           hasImage: get().hasImage,
         });
         await saveProject(project);
@@ -170,7 +154,7 @@ export const useProjectStore = create<ProjectState>((set, get) => {
             () => set({ persisted: false }),
           );
         }
-        if (get().galleryOpen) void get().refresh();
+        if (useShell.getState().galleryOpen) void get().refresh();
       } catch (err) {
         set({ status: 'error', error: friendly(err) });
       } finally {
@@ -205,7 +189,8 @@ export const useProjectStore = create<ProjectState>((set, get) => {
           hasImage: Boolean(p.data.image),
         });
         await restoreProject(p.data);
-        set({ step: p.data.step, touched: true, status: 'saved', savedAt: p.meta.updatedAt });
+        useShell.getState().setStep(p.data.step);
+        set({ touched: true, status: 'saved', savedAt: p.meta.updatedAt });
         return true;
       } catch (err) {
         set({ message: friendly(err) });
@@ -290,6 +275,9 @@ function workWasDone(): boolean {
 export function startAutosave(): () => void {
   const touch = () => useProjectStore.getState().touch();
   const stops = [
+    useShell.subscribe((s, p) => {
+      if (s.step !== p.step) touch();
+    }),
     useLowPolyStore.subscribe((s, p) => {
       if (s.settings !== p.settings || s.paletteVersion !== p.paletteVersion || s.view !== p.view)
         touch();

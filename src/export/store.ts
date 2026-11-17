@@ -1,3 +1,4 @@
+import { playSound } from '../app/sound';
 import { create, type StoreApi, type UseBoundStore } from 'zustand';
 import { sequencer, useAnimStore } from '../animate/store';
 import { useCraftStore } from '../craft/store';
@@ -107,8 +108,10 @@ export const useExportStore: UseBoundStore<StoreApi<ExportState>> = create<Expor
 
     run: async (kind): Promise<void> => {
       if (get().busy) return;
-      const finish = (text: string, ok = true) =>
+      const finish = (text: string, ok = true) => {
         set({ busy: null, progress: 0, results: { ...get().results, [kind]: { ok, text } } });
+        if (ok) playSound('export');
+      };
       set({ busy: kind, progress: 0 });
       abort = new AbortController();
       const s = get();

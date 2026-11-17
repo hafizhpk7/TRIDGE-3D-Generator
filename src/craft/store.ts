@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useShell } from '../app/shellStore';
 import { buildInWorker } from './builder/client';
 import type { BuiltCraft } from './builder/build';
 import {
@@ -256,3 +257,9 @@ export const useCraftUi = create<CraftUiState>((set) => ({
   setSnap: (snap) => set({ snap }),
   setPreview: (preview) => set(preview ? { preview, editMode: false } : { preview }),
 }));
+
+// Tell the page shell whether a Craft model is open, without the shell having to load this store.
+useCraftStore.subscribe((s) => {
+  const has = s.spec !== null;
+  if (useShell.getState().craft !== has) useShell.setState({ craft: has });
+});

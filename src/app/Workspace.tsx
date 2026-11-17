@@ -1,46 +1,115 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Button, IconButton, Modal, Panel, Tabs } from '../design/components';
-import { ProjectsModal, SaveStatus } from '../projects/ProjectsModal';
-import { startAutosave, useProjectStore } from '../projects/store';
+import { Button, IconButton, Modal, Panel, Tabs, Toggle, useToast } from '../design/components';
 import { InputStep } from './InputStep';
-import { GeneratePanel } from '../pipeline/providers/GeneratePanel';
-import { LowPolyPanel } from '../pipeline/lowpoly/LowPolyPanel';
-import { CraftDetailPanel } from '../craft/ui/CraftDetailPanel';
-import { useCraftStore } from '../craft/store';
-import { RigPanel } from '../rig/RigPanel';
-import { AnimatePanel } from '../animate/AnimatePanel';
-import { ExportPanel } from '../export/ExportPanel';
+import { Lazy } from './ErrorBoundary';
+import { Onboarding } from './Onboarding';
+import { tourSeen } from './tour';
+import { useShell } from './shellStore';
+import { useSound } from './sound';
 import { StepTracker } from './StepTracker';
 import { STEPS } from './steps';
 import { ThemeToggle } from './ThemeToggle';
 import './Workspace.css';
 
+// Everything heavy loads only when it is first needed, so the first screen appears quickly.
 const ViewerPanel = lazy(() => import('../viewer/ViewerPanel'));
+const GeneratePanel = lazy(() =>
+  import('../pipeline/providers/GeneratePanel').then((m) => ({ default: m.GeneratePanel })),
+);
+const LowPolyPanel = lazy(() =>
+  import('../pipeline/lowpoly/LowPolyPanel').then((m) => ({ default: m.LowPolyPanel })),
+);
+const CraftDetailPanel = lazy(() =>
+  import('../craft/ui/CraftDetailPanel').then((m) => ({ default: m.CraftDetailPanel })),
+);
+const RigPanel = lazy(() => import('../rig/RigPanel').then((m) => ({ default: m.RigPanel })));
+const AnimatePanel = lazy(() =>
+  import('../animate/AnimatePanel').then((m) => ({ default: m.AnimatePanel })),
+);
+const ExportPanel = lazy(() =>
+  import('../export/ExportPanel').then((m) => ({ default: m.ExportPanel })),
+);
+const ProjectsModal = lazy(() =>
+  import('../projects/ProjectsModal').then((m) => ({ default: m.ProjectsModal })),
+);
+const SaveStatus = lazy(() =>
+  import('../projects/ProjectsModal').then((m) => ({ default: m.SaveStatus })),
+);
 
-const TOOL_TABS = ['Low poly', 'Rig', 'Animate', 'Export'];
+const TOOL_TABS = [
+  { label: 'Low poly', step: 'lowpoly' },
+  { label: 'Rig', step: null },
+  { label: 'Animate', step: 'animate' },
+  { label: 'Export', step: 'export' },
+];
 
 export function Workspace() {
-  const step = useProjectStore((s) => s.step);
-  const setStep = useProjectStore((s) => s.setStep);
-  const openGallery = useProjectStore((s) => s.openGallery);
+  const step = useShell((s) => s.step);
+  const setStep = useShell((s) => s.setStep);
+  const openGallery = useShell((s) => s.openGallery);
+  const galleryOpen = useShell((s) => s.galleryOpen);
+  const craft = useShell((s) => s.craft);
+  const soundOn = useSound((s) => s.enabled);
+  const setSound = useSound((s) => s.setEnabled);
   const [tool, setTool] = useState('low-poly');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [tour, setTour] = useState(false);
+  const toast = useToast();
 
-  useEffect(() => startAutosave(), []);
-  const craftSpec = useCraftStore((s) => s.spec);
+  // Tell people early when the internet drops, and which parts still work without it.
+  useEffect(() => {
+    const off = () =>
+      toast.show(
+        'You are offline. Making models from pictures needs the internet; Craft, rigging, animating and exporting still work.',
+        'error',
+      );
+    const on = () => toast.show('You are back online.');
+    window.addEventListener('offline', off);
+    window.addEventListener('online', on);
+    return () => {
+      window.removeEventListener('offline', off);
+      window.removeEventListener('online', on);
+    };
+  }, [toast]);
+
+  // Autosave lives with the heavy code, so it is loaded after the first screen is up.
+  useEffect(() => {
+    let stop: (() => void) | undefined;
+    let cancelled = false;
+    void import('../projects/store').then((m) => {
+      if (!cancelled) stop = m.startAutosave();
+    });
+    return () => {
+      cancelled = true;
+      stop?.();
+    };
+  }, []);
+
+  // First visit: offer the short tour once the page has settled.
+  useEffect(() => {
+    if (tourSeen()) return;
+    const t = window.setTimeout(() => setTour(true), 900);
+    return () => window.clearTimeout(t);
+  }, []);
 
   const current = STEPS.find((s) => s.id === step) ?? STEPS[0];
 
   return (
     <div className="shell">
+      <a className="skip-link" href="#main">
+        Skip to the main area
+      </a>
       <header className="topbar">
+        <h1 className="sr-only">TRIDGE workspace</h1>
         <Link to="/" className="topbar__logo">
           <img src="./tridge-logo.svg" alt="TRIDGE" height={44} />
         </Link>
         <nav className="topbar__actions" aria-label="App">
-          <SaveStatus />
+          <Lazy label="Save status" fallback={null}>
+            <SaveStatus />
+          </Lazy>
           <Button variant="ghost" onClick={openGallery}>
             Projects
           </Button>
@@ -48,52 +117,62 @@ export function Workspace() {
             Playground
           </Link>
           <ThemeToggle />
-          <IconButton label="Help" onClick={() => setHelpOpen(true)}>
+          <IconButton label="Help and settings" onClick={() => setHelpOpen(true)}>
             ?
           </IconButton>
         </nav>
       </header>
 
-      <main className="workspace">
+      <main className="workspace" id="main" tabIndex={-1}>
         <div className="workspace__steps">
           <StepTracker current={step} onSelect={setStep} />
-          {step === 'input' ? (
-            <InputStep />
-          ) : step === 'generate' && craftSpec ? (
-            <Panel title="Generate" accent="orange">
-              <p>Your Craft model is already built and rigged, so there is nothing to generate.</p>
-              <Button variant="secondary" onClick={() => setStep('lowpoly')}>
-                Go to Low poly
-              </Button>
-            </Panel>
-          ) : step === 'generate' ? (
-            <GeneratePanel
-              onGoToInput={() => setStep('input')}
-              onGoToLowPoly={() => setStep('lowpoly')}
-            />
-          ) : step === 'animate' ? (
-            <AnimatePanel />
-          ) : step === 'export' ? (
-            <ExportPanel />
-          ) : step === 'lowpoly' ? (
-            craftSpec ? (
-              <CraftDetailPanel />
+          <Lazy label="This step">
+            {step === 'input' ? (
+              <InputStep />
+            ) : step === 'generate' && craft ? (
+              <Panel title="Generate" accent="orange">
+                <p>
+                  Your Craft model is already built and rigged, so there is nothing to generate.
+                </p>
+                <Button variant="secondary" onClick={() => setStep('lowpoly')}>
+                  Go to Low poly
+                </Button>
+              </Panel>
+            ) : step === 'generate' ? (
+              <GeneratePanel
+                onGoToInput={() => setStep('input')}
+                onGoToLowPoly={() => setStep('lowpoly')}
+              />
+            ) : step === 'animate' ? (
+              <AnimatePanel />
+            ) : step === 'export' ? (
+              <ExportPanel />
+            ) : step === 'lowpoly' ? (
+              craft ? (
+                <CraftDetailPanel />
+              ) : (
+                <LowPolyPanel />
+              )
             ) : (
-              <LowPolyPanel />
-            )
-          ) : (
-            <Panel title={current.title} accent={current.color} className="step-detail">
-              <p>{current.hint}</p>
-              <p className="muted">This panel gets its controls in a later phase.</p>
-            </Panel>
-          )}
+              <Panel title={current.title} accent={current.color} className="step-detail">
+                <p>{current.hint}</p>
+              </Panel>
+            )}
+          </Lazy>
         </div>
 
-        <Suspense fallback={<div className="viewer" aria-busy="true" />}>
+        <Lazy
+          label="The viewer"
+          fallback={<div className="viewer" data-tour="viewer" aria-busy="true" />}
+        >
           <ViewerPanel />
-        </Suspense>
+        </Lazy>
 
-        <aside className={`tools ${sheetOpen ? 'tools--open' : ''}`} aria-label="Tools">
+        <aside
+          className={`tools ${sheetOpen ? 'tools--open' : ''}`}
+          aria-label="Tools"
+          data-tour="tools"
+        >
           <button
             type="button"
             className="tools__handle"
@@ -109,18 +188,30 @@ export function Workspace() {
                 ariaLabel="Tools"
                 value={tool}
                 onChange={setTool}
-                tabs={TOOL_TABS.map((label) => ({
+                tabs={TOOL_TABS.map(({ label, step: target }) => ({
                   id: label.toLowerCase().replace(' ', '-'),
                   label,
                   content:
-                    label === 'Rig' ? (
-                      <RigPanel craft={Boolean(craftSpec)} />
-                    ) : label === 'Animate' ? (
-                      <p className="muted">Open step 4, Animate, in the list on the left.</p>
-                    ) : label === 'Export' ? (
-                      <p className="muted">Open step 5, Export, in the list on the left.</p>
+                    target === null ? (
+                      <Lazy label="The rig tools">
+                        <RigPanel craft={craft} />
+                      </Lazy>
                     ) : (
-                      <p className="muted">{label} tools will appear here.</p>
+                      <div>
+                        <p className="muted">
+                          {label} has its own step in the list on the left, with room for all its
+                          controls.
+                        </p>
+                        <Button
+                          variant="secondary"
+                          onClick={() => {
+                            setStep(target);
+                            setSheetOpen(false);
+                          }}
+                        >
+                          Open {label}
+                        </Button>
+                      </div>
                     ),
                 }))}
               />
@@ -129,16 +220,47 @@ export function Workspace() {
         </aside>
       </main>
 
-      <ProjectsModal />
+      {galleryOpen && (
+        <Lazy label="Your projects" fallback={null}>
+          <ProjectsModal />
+        </Lazy>
+      )}
+
+      {tour && <Onboarding onClose={() => setTour(false)} />}
 
       <Modal
         open={helpOpen}
-        title="Help"
+        title="Help and settings"
         onClose={() => setHelpOpen(false)}
         footer={<Button onClick={() => setHelpOpen(false)}>Got it</Button>}
       >
+        <h3>How it works</h3>
         <p>
-          Work down the steps on the left. You can switch the theme with the sun and moon button.
+          Work down the five steps on the left. Make a model from a photo, from words, or with
+          Craft, then make it low poly, rig it, animate it and export it. Everything runs in your
+          browser, and your work saves itself under Projects.
+        </p>
+        <h3>In the viewer</h3>
+        <p>
+          Drag to turn the model, scroll or pinch to zoom, and use the small buttons under it to
+          change how it looks.
+        </p>
+        <h3>Settings</h3>
+        <Toggle
+          label="Play small sounds when something finishes"
+          checked={soundOn}
+          onChange={setSound}
+        />
+        <p>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setHelpOpen(false);
+              setTour(true);
+            }}
+          >
+            Show the tour again
+          </Button>
         </p>
       </Modal>
     </div>

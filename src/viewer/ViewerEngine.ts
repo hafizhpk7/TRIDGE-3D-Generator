@@ -843,6 +843,24 @@ export class ViewerEngine {
       ((e.clientX - rect.left) / rect.width) * 2 - 1,
       -(((e.clientY - rect.top) / rect.height) * 2 - 1),
     );
+    if (e.pointerType === 'touch' || e.pointerType === 'pen') {
+      // Fingers are fat: pick the joint nearest the touch within a generous radius, not just one under the tip.
+      const reach = 34;
+      let best: Mesh | null = null;
+      let bestDist = reach;
+      const p = new Vector3();
+      for (const m of this.markerMeshes.values()) {
+        m.getWorldPosition(p).project(this.camera);
+        const dx = ((p.x + 1) / 2) * rect.width + rect.left - e.clientX;
+        const dy = ((1 - p.y) / 2) * rect.height + rect.top - e.clientY;
+        const d = Math.hypot(dx, dy);
+        if (d < bestDist) {
+          bestDist = d;
+          best = m;
+        }
+      }
+      return best;
+    }
     this.raycaster.setFromCamera(ndc, this.camera);
     const hits = this.raycaster.intersectObjects([...this.markerMeshes.values()], false);
     return (hits[0]?.object as Mesh | undefined) ?? null;

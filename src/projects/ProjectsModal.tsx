@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, IconButton, Modal, ProgressBar } from '../design/components';
 import { formatBytes } from '../export/download';
 import { nearlyFull } from './db';
+import { useShell } from '../app/shellStore';
 import { useProjectStore } from './store';
 import type { ProjectMeta } from './types';
 import './ProjectsModal.css';
@@ -87,7 +88,7 @@ function Card({ meta, current }: { meta: ProjectMeta; current: boolean }) {
               disabled={s.loading}
               onClick={() =>
                 void s.open(meta.id).then((ok) => {
-                  if (ok) s.closeGallery();
+                  if (ok) useShell.getState().closeGallery();
                 })
               }
             >
@@ -137,16 +138,22 @@ export function SaveStatus() {
 
 export function ProjectsModal() {
   const s = useProjectStore();
+  const open = useShell((x) => x.galleryOpen);
+  const closeGallery = useShell((x) => x.closeGallery);
+  const refresh = s.refresh;
+  useEffect(() => {
+    if (open) void refresh();
+  }, [open, refresh]);
   const fileRef = useRef<HTMLInputElement>(null);
   const full = nearlyFull(s.usage);
   const pct = s.usage ? Math.min(100, (s.usage.usage / s.usage.quota) * 100) : undefined;
 
   return (
     <Modal
-      open={s.galleryOpen}
+      open={open}
       title="Your projects"
-      onClose={s.closeGallery}
-      footer={<Button onClick={s.closeGallery}>Done</Button>}
+      onClose={closeGallery}
+      footer={<Button onClick={closeGallery}>Done</Button>}
     >
       <p>
         Your work saves itself in this browser, so it is still here after you close the page.
