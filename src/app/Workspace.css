@@ -203,3 +203,52 @@
   border-radius: 16px;
   background: var(--surface-2);
 }
+
+/*
+ * Phones: the five steps become one compact row (number over name), so the step's own panel starts
+ * on the first screen instead of after five full-width cards. The hints stay readable by screen readers.
+ */
+@media (max-width: 560px) {
+  .steps.panel {
+    padding: var(--space-2) 4px;
+  }
+  .steps .panel__title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .steps__list {
+    flex-direction: row;
+    gap: 0;
+  }
+  .steps__list li {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .step {
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 4px;
+    min-height: 68px;
+    padding: 6px 0;
+    border-width: 2px;
+    text-align: center;
+  }
+  .step__title {
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+  .step__hint {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}

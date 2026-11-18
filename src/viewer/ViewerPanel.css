@@ -149,3 +149,14 @@
 .viewer__tag--right {
   right: var(--space-3);
 }
+
+/* Phones: leave room under the viewer for the step the person is working on. */
+@media (max-width: 560px) {
+  .viewer__stage {
+    height: clamp(200px, 30vh, 300px);
+  }
+  /* The background colour is a nicety; on a phone the row costs a screen's worth of scrolling. */
+  .viewer__group[aria-label='Background color'] {
+    display: none;
+  }
+}

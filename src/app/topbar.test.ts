@@ -27,3 +27,24 @@ describe('top bar on small screens', () => {
     expect(smallScreenRules(css)).toMatch(/\.topbar__link/);
   });
 });
+
+const viewerCss = read('src/viewer/ViewerPanel.css');
+
+describe('phone layout keeps the first action near the top', () => {
+  it('lays the five steps out in one row on small screens', () => {
+    const rules = smallScreenRules(css);
+    expect(rules).toMatch(/\.steps__list\s*\{[^}]*flex-direction:\s*row/);
+  });
+
+  it('caps the height of the 3D stage on small screens', () => {
+    const rules = smallScreenRules(viewerCss);
+    expect(rules).toMatch(/\.viewer__stage\s*\{[^}]*height:\s*clamp\(\s*\d+px,\s*\d+vh,\s*\d+px\)/);
+  });
+
+  it('hides step hints only visually, so screen readers still get them', () => {
+    const rules = smallScreenRules(css);
+    const hint = rules.match(/\.step__hint\s*\{([^}]*)\}/)?.[1] ?? '';
+    expect(hint).not.toMatch(/display:\s*none/);
+    expect(hint).toMatch(/clip/);
+  });
+});
