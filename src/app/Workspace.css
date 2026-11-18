@@ -33,9 +33,27 @@
 .topbar__link {
   text-decoration: none;
 }
+/* On phones only the developer-facing Playground link goes; Projects must stay reachable. */
 @media (max-width: 560px) {
-  .topbar__actions .btn {
+  .topbar__actions .topbar__link {
     display: none;
+  }
+  /* Tighter bar so logo, Projects, theme and help all fit side by side at 360px. */
+  .topbar {
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+  }
+  .topbar__logo {
+    padding: 2px 4px;
+  }
+  .topbar__logo img {
+    height: 28px;
+  }
+  .topbar__actions {
+    gap: 4px;
+  }
+  .topbar__actions .btn {
+    padding: 8px 12px;
   }
 }
 

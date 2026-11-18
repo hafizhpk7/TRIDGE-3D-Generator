@@ -120,16 +120,13 @@ export function SaveStatus() {
   const error = useProjectStore((s) => s.error);
   if (status === 'idle') return null;
   const text =
-    status === 'saving'
-      ? 'Saving…'
-      : status === 'saved'
-        ? `Saved: ${name}`
-        : error || 'Could not save';
+    status === 'saving' ? 'Saving…' : status === 'saved' ? 'Saved' : error || 'Could not save';
   return (
     <span
       className={`save-status ${status === 'error' ? 'save-status--bad' : ''}`}
       role="status"
       aria-live="polite"
+      title={status === 'saved' ? `Saved: ${name}` : text}
     >
       {text}
     </span>
