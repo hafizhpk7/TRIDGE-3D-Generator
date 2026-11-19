@@ -4,6 +4,7 @@ import { Button, ChipButton, IconButton, Panel, Slider, Toggle } from '../design
 import '../craft/ui/craft.css';
 import { labelOf } from './parser';
 import type { SeqStep } from './player';
+import { useShell } from '../app/shellStore';
 import { useAnimStore } from './store';
 import './AnimatePanel.css';
 
@@ -52,8 +53,13 @@ export function AnimatePanel() {
       <p className="muted">
         {rigged
           ? `This model has a ${s.targetType} skeleton, so it can walk, jump and more.`
-          : 'This model has no skeleton, so it can only move as a whole. Rig it in the Rig tab for walking, jumping and more.'}
+          : 'This model has no skeleton, so it can only move as a whole. Give it a skeleton in the Rig step to make it walk, jump and more.'}
       </p>
+      {!rigged && (
+        <Button variant="secondary" onClick={() => useShell.getState().setStep('rig')}>
+          Go to the Rig step
+        </Button>
+      )}
 
       <div className="field">
         <label htmlFor={promptId}>Tell it what to do</label>

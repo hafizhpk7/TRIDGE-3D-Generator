@@ -41,7 +41,7 @@ const About = lazy(() => import('./About').then((m) => ({ default: m.About })));
 
 const TOOL_TABS = [
   { label: 'Low poly', step: 'lowpoly' },
-  { label: 'Rig', step: null },
+  { label: 'Rig', step: 'rig' },
   { label: 'Animate', step: 'animate' },
   { label: 'Export', step: 'export' },
 ];
@@ -146,6 +146,10 @@ export function Workspace() {
                 onGoToInput={() => setStep('input')}
                 onGoToLowPoly={() => setStep('lowpoly')}
               />
+            ) : step === 'rig' ? (
+              <Panel title="Rig" accent="violet">
+                <RigPanel craft={craft} />
+              </Panel>
             ) : step === 'animate' ? (
               <AnimatePanel />
             ) : step === 'export' ? (
@@ -194,28 +198,22 @@ export function Workspace() {
                 tabs={TOOL_TABS.map(({ label, step: target }) => ({
                   id: label.toLowerCase().replace(' ', '-'),
                   label,
-                  content:
-                    target === null ? (
-                      <Lazy label="The rig tools">
-                        <RigPanel craft={craft} />
-                      </Lazy>
-                    ) : (
-                      <div>
-                        <p className="muted">
-                          {label} has its own step in the list on the left, with room for all its
-                          controls.
-                        </p>
-                        <Button
-                          variant="secondary"
-                          onClick={() => {
-                            setStep(target);
-                            setSheetOpen(false);
-                          }}
-                        >
-                          Open {label}
-                        </Button>
-                      </div>
-                    ),
+                  content: (
+                    <div>
+                      <p className="muted">
+                        {label} has its own step in the Steps list, with room for all its controls.
+                      </p>
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          setStep(target);
+                          setSheetOpen(false);
+                        }}
+                      >
+                        Open {label}
+                      </Button>
+                    </div>
+                  ),
                 }))}
               />
             </Panel>
@@ -258,9 +256,9 @@ export function Workspace() {
       >
         <h3>How it works</h3>
         <p>
-          Work down the five steps on the left. Make a model from a photo, from words, or with
-          Craft, then make it low poly, rig it, animate it and export it. Everything runs in your
-          browser, and your work saves itself under Projects.
+          Work down the steps. Make a model from a photo, from words, or with Craft, then make it
+          low poly, rig it, animate it and export it. Everything runs in your browser, and your work
+          saves itself under Projects.
         </p>
         <h3>In the viewer</h3>
         <p>

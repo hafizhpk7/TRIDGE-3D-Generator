@@ -26,7 +26,7 @@ export interface TourStep {
 export const TOUR: TourStep[] = [
   {
     target: 'steps',
-    title: 'Five easy steps',
+    title: 'Step by step',
     body: 'Start with a photo, a few words, or a Craft shape. Then work down the list: make it low poly, rig it, animate it and export it.',
   },
   {

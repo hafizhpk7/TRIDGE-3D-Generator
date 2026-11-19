@@ -37,7 +37,7 @@ Use a current Chrome or Edge first. Tick each line. If something fails, note the
 - [ ] Before and after view: drag the divider. Palette swatches can be recoloured.
 
 ### 4. Rig and animate
-- [ ] Open **Rig** in the tools. **Place skeleton** puts joints on the model. Drag a joint (on a phone, near it is enough). **Rig it** finishes; **Test pose** moves the model.
+- [ ] Open the **Rig** step. **Place skeleton** puts joints on the model. Drag a joint (on a phone, near it is enough). **Rig it** finishes; **Test pose** moves the model.
 - [ ] Open **Animate**. Type "walk slowly then jump high" and press **Play it**. The model walks, then jumps, with a smooth join.
 - [ ] Type "kucing jalan pelan terus loncat tinggi": the same result.
 - [ ] Type nonsense: you get a friendly reply with moves to tap.
